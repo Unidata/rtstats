@@ -1,0 +1,11 @@
+{"databasero":
+ {"user": "nobody",
+  "host": "localhost",
+  "password": "secret",
+  "name": "rtstats"},
+ "databaserw":
+ {"user": "ldm",
+  "host": "localhost",
+  "password": "secret",
+  "name": "rtstats"}
+}

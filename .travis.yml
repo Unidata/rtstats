@@ -1,0 +1,31 @@
+sudo: required
+dist: trusty
+addons:
+  hosts:
+    - rstats.local
+    - memcached.local
+virtualenv:
+  system_site_packages: true
+language: python
+python:
+  - "2.7"
+before_install:
+  - sudo add-apt-repository ppa:ubuntugis/ppa -y
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq python-matplotlib python-psycopg2 python-numpy python-memcache 
+  - sudo apt-get install apache2 libapache2-mod-wsgi memcached 
+  - sudo service memcached start
+  - sudo a2enmod headers rewrite proxy cgi
+  - sudo service apache2 restart || sudo cat /var/log/apache2/error.log
+  # apt provided requests, pandas is too old
+  - "sudo pip install requests"
+  - "sudo pip install pandas"
+install:
+  - "pip install --upgrade pip"
+before_script:
+  - cd config; cp settings.json-in settings.json; cd ..
+  - cd database; sh bootstrap.sh
+  - python schema_manager.py
+  - cd ..
+script:
+  - sudo cat /var/log/apache2/error.log
