@@ -10,12 +10,16 @@ language: python
 python:
   - "2.7"
 before_install:
+  - sudo ln -s `pwd` /opt/rtstats
   - sudo add-apt-repository ppa:ubuntugis/ppa -y
   - sudo apt-get update -qq
   - sudo apt-get install -qq python-matplotlib python-psycopg2 python-numpy python-memcache 
   - sudo apt-get install apache2 libapache2-mod-wsgi memcached 
   - sudo service memcached start
   - sudo a2enmod headers rewrite proxy cgi
+  - echo '<VirtualHost *:80>' | sudo tee /etc/apache2/sites-enabled/rtstats.conf > /dev/null
+  - cat config/rtstats-vhost.inc | sudo tee -a /etc/apache2/sites-enabled/rtstats.conf > /dev/null
+  - echo '</VirtualHost>' | sudo tee -a /etc/apache2/sites-enabled/rtstats.conf > /dev/null
   - sudo service apache2 restart || sudo cat /var/log/apache2/error.log
   # apt provided requests, pandas is too old
   - "sudo pip install requests"
