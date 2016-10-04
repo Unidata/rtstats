@@ -14,7 +14,7 @@ before_install:
   - sudo add-apt-repository ppa:ubuntugis/ppa -y
   - sudo apt-get update -qq
   - sudo apt-get install -qq python-matplotlib python-psycopg2 python-numpy python-memcache 
-  - sudo apt-get install apache2 libapache2-mod-wsgi memcached 
+  - sudo apt-get install apache2 libapache2-mod-wsgi memcached postgis
   - sudo service memcached start
   - sudo a2enmod headers rewrite proxy cgi
   - echo '<VirtualHost *:80>' | sudo tee /etc/apache2/sites-enabled/rtstats.conf > /dev/null
@@ -24,6 +24,7 @@ before_install:
   # apt provided requests, pandas is too old
   - "sudo pip install requests"
   - "sudo pip install pandas"
+  - curl http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz | sudo gunzip - > /tmp/GeoLiteCity.dat
 install:
   - "pip install --upgrade pip"
 before_script:
@@ -32,4 +33,6 @@ before_script:
   - python schema_manager.py
   - cd ..
 script:
+  - cat test/rtstats_example.txt | python app/run.py
+  - python scripts/assign_hostname_geom.py
   - sudo cat /var/log/apache2/error.log

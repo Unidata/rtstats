@@ -1,0 +1,3 @@
+@reboot source /home/ldm/.bashrc; ~/bin/ldmadmin stop; ~/bin/ldmadmin start
+
+10 * * * * cd /opt/rtstats/scripts; python assign_hostname_geom.py

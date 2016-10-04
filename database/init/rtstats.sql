@@ -1,3 +1,5 @@
+CREATE EXTENSION postgis;
+
 ---------------------------
 -- Storage of LDM version strings
 
@@ -6,6 +8,7 @@ CREATE TABLE ldm_versions(
 	version varchar(32),
 	entry_added timestamptz default now());
 GRANT SELECT on ldm_versions to nobody;
+GRANT ALL on ldm_versions to ldm;
 
 -- lookup or creation of ldm_versions
 CREATE OR REPLACE FUNCTION get_ldm_version(_version text,
@@ -42,6 +45,7 @@ CREATE TABLE ldm_feedtypes(
 	feedtype varchar(32) UNIQUE NOT NULL,
 	entry_added timestamptz default now());
 GRANT SELECT on ldm_feedtypes to nobody;
+GRANT ALL on ldm_feedtypes to ldm;
 
 -- lookup or creation of ldm_feedtypes
 CREATE OR REPLACE FUNCTION get_ldm_feedtype(_feedtype text,
@@ -78,10 +82,12 @@ CREATE TABLE ldm_hostnames(
 	id SERIAL UNIQUE NOT NULL,
 	hostname varchar(256) UNIQUE NOT NULL
 		CONSTRAINT notblank_hostname CHECK (hostname != ''),
+	geom geometry(POINT, 4326),
 	entry_added timestamptz default now()
 );
 GRANT SELECT on ldm_hostnames to nobody;
 CREATE INDEX ldm_hostnames_hostname_idx on ldm_hostnames(hostname);
+GRANT ALL on ldm_hostnames to ldm;
 
 -- lookup or creation of ldm_hostnames
 CREATE OR REPLACE FUNCTION get_ldm_hostname(_hostname text,
@@ -125,6 +131,7 @@ GRANT SELECT on ldm_feedtype_paths to nobody;
 CREATE INDEX ldm_feedtype_paths_idx on
 	ldm_feedtype_paths(feedtype, origin_hostname, relay_hostname,
 	node_hostname);
+GRANT ALL on ldm_feedtype_paths to ldm;
 
 -- lookup or creation of ldm_feedtype_paths
 CREATE OR REPLACE FUNCTION get_ldm_feedtype_path(_feedtype int, _origin int,
@@ -175,4 +182,5 @@ CREATE TABLE ldm_rtstats(
 	entry_added timestamptz default now()
 );
 GRANT SELECT on ldm_rtstats to nobody;
+GRANT ALL on ldm_rtstats to ldm;
 
