@@ -7,7 +7,7 @@ from twisted.enterprise import adbapi
 from twisted.web import server
 from applib import ldmingest
 from applib import web
-from pyldm import ldmbridge
+from applib import ldmbridge
 import json
 import os
 
