@@ -10,6 +10,8 @@ language: python
 python:
   - "2.7"
 before_install:
+  # Stop supplied 9.1 postgresql as postgis below brings in 9.6 for some reason
+  - sudo /etc/init.d/postgresql stop
   - sudo ln -s `pwd` /opt/rtstats
   - sudo add-apt-repository ppa:ubuntugis/ppa -y
   - sudo apt-get update -qq
