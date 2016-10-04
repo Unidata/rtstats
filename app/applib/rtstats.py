@@ -1,6 +1,11 @@
 from twisted.python import log
 import pytz
 import datetime
+from distutils.version import LooseVersion
+
+# Versions that had the origin 32 byte truncation bug, see @akrherz/rtstats#1
+TRUNC_BUG_FLOOR = LooseVersion('6.11.7')
+TRUNC_BUG_CEIL = LooseVersion('6.12.15.38')
 
 
 def split_origin(val):
@@ -45,10 +50,13 @@ def parser(cursor, raw):
     if len(tokens) != 11:
         log.msg("parser did not find 11 tokens in %s" % (repr(raw),))
         return
-    # This 99% likely to be a truncated path due to old rtstats bug
-    # we really can only ignore these for now.
+    version = tokens[10]
+    # Truncated origin path candidate, see @akrherz/rtstats#1
     if len(tokens[4]) == 32:
-        return
+        v = LooseVersion(version)
+        if v >= TRUNC_BUG_FLOOR and v < TRUNC_BUG_CEIL:
+            return
+        # print("OK? |%s| version:|%s|" % (tokens[4], version))
     (origin_hostname, relay_hostname) = split_origin(tokens[4])
     # this is likely from the old case of bug with rtstats
     if origin_hostname is None:
@@ -60,7 +68,6 @@ def parser(cursor, raw):
     avg_latency = tokens[7]
     max_latency = tokens[8]
     slowest_at = tokens[9]
-    version = tokens[10]
     feedtype = tokens[3]
     node_hostname = tokens[2]
 
