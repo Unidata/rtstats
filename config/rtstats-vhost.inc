@@ -6,3 +6,10 @@
   	Order allow,deny
   	Allow from all
   </Directory>
+
+  <Directory "/opt/rtstats/htdocs/services">
+    AddHandler cgi-script .py
+    Options +ExecCGI
+    RewriteEngine On
+    RewriteRule ^idd.geojson(.*) idd.py$1 [QSA]
+  </Directory>

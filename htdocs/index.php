@@ -1,4 +1,3 @@
-
 <!DOCTYPE HTML>
  <html>
   <head>
@@ -9,6 +8,8 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />  
     <meta http-equiv="X-UA-Compatible" content="IE=edge" /> 
+    <link rel="stylesheet" href="/vendor/openlayers/3.18.2/ol.css" type="text/css">
+    <script src="/vendor/openlayers/3.18.2/ol.js"></script>
     <!-- Unidata CSS -->
     <link rel="stylesheet" href="https://www.unidata.ucar.edu/css/upc.css" type="text/css" media="screen, handheld" />
 
@@ -69,7 +70,6 @@
         </li>
 
         <div class="menuLoginLinks screen_collapse">
-          <script type="text/javascript">loadMenuLoginLinks();</script>
         </div>
        </ul>
        <a href="#" id="pull">Menu</a>
@@ -94,8 +94,12 @@
       <h5>About the IDD</h5>
       <p>The Unidata community of over 260 universities is building a system for disseminating near real-time earth observations via the Internet. Unlike other systems, which are based on data centers where the information can be accessed, Unidata Internet Data Distribution (IDD) is designed so a university can request that certain data sets be delivered to computers at their site as soon as they are available from the observing system. The IDD system also allows any site with access to specialized observations to inject the dataset into the IDD for delivery to other interested sites.  </p>
       <p><a href="http://www.unidata.ucar.edu/projects/index.html#idd" class="more">More information about the IDD</a></p>
-      <h5>Real-Time IDD Topology</h5>
-      <p><img src="gifs/realtime_idd.gif" alt="Real-Time IDD Statistics" /></p>
+      <h5>Real-Time IDD Topology, click line for more information</h5>
+
+<div id="detailfeature"></div>
+<br />
+<div id="map" class="map"></div>
+
     </div> <!-- /#container -->
    </div> <!-- /#wrap -->
  <!-- See footer.css for the styling of this section -->
@@ -195,10 +199,7 @@
   </div> <!-- /#triptych-column-container -->
  </footer>
 
-
-
-
-
+    <script src="/js/homepage.js"></script>
 
   </body>
  </html>
