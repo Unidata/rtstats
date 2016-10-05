@@ -5,7 +5,6 @@
 from twisted.internet import reactor
 from twisted.enterprise import adbapi
 from twisted.web import server
-from applib import ldmingest
 from applib import web
 from applib import ldmbridge
 import json
@@ -14,10 +13,9 @@ import os
 
 def ready(_, dbpool):
     """run the server components"""
-    print "ready!"
-    ingest = ldmingest.RTStatsIngestor()
-    ingest.dbpool = dbpool
-    ldmbridge.LDMProductFactory(ingest)
+    protocol = ldmbridge.RTStatsIngestor()
+    protocol.dbpool = dbpool
+    ldmbridge.LDMProductFactory(protocol)
 
     www = server.Site(web.RootResource())
     reactor.listenTCP(8005, www)

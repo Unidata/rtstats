@@ -39,16 +39,16 @@ def s2ts(timestamp):
     return ts.replace(tzinfo=pytz.utc)
 
 
-def parser(cursor, raw):
+def parser(cursor, line):
     """Parse and save rtstats content
 
     Args:
       cursor: database cursor
       raw (string): content of the rtstats report
     """
-    tokens = raw.strip().split()
+    tokens = line.strip().split()
     if len(tokens) != 11:
-        log.msg("parser did not find 11 tokens in %s" % (repr(raw),))
+        log.msg("parser did not find 11 tokens in %s" % (repr(line),))
         return
     version = tokens[10]
     # Truncated origin path candidate, see @akrherz/rtstats#1
@@ -70,7 +70,6 @@ def parser(cursor, raw):
     slowest_at = tokens[9]
     feedtype = tokens[3]
     node_hostname = tokens[2]
-
     cursor.execute("""INSERT into ldm_rtstats
     (feedtype_path, queue_arrival, queue_recent, nprods, nbytes,
     avg_latency, max_latency, slowest_at, version) VALUES

@@ -29,4 +29,4 @@ and queries backend HTTP services provided by LDM ingest process
 rpm -ivh https://download.postgresql.org/pub/repos/yum/9.6/redhat/rhel-7-x86_64/pgdg-redhat96-9.6-3.noarch.rpm
 yum -y install git postgresql96-server httpd php mod_ssl \
 libxml2-devel gcc-c++ byacc make perl bc lftp python-twisted-web \
-pytz python-psycopg2 python-GeoIP postgis2_96
+pytz python-psycopg2 python-GeoIP postgis2_96 memcached
