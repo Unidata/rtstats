@@ -19,29 +19,30 @@ def run(feedtype):
     cursor = pgconn.cursor()
     cursor.execute("""
     with data as (
-        select r.feedtype_path, origin_hostid, relay_hostid, node_hostid,
-        avg_latency, r.entry_added, p.feedtype,
-        rank() OVER (PARTITION by r.feedtype_path ORDER by r.entry_added DESC)
+        select r.feedtype_path_id, origin_host_id, relay_host_id, node_host_id,
+        avg_latency, r.entry_added, p.feedtype_id,
+        rank() OVER
+            (PARTITION by r.feedtype_path_id ORDER by r.entry_added DESC)
         from ldm_rtstats r JOIN ldm_feedtype_paths p
-            on (r.feedtype_path = p.id)
+            on (r.feedtype_path_id = p.id)
         WHERE r.entry_added > now() - '1 hour'::interval
-        and p.feedtype = get_ldm_feedtype('HDS')),
+        and p.feedtype_id = get_ldm_feedtype_id('HDS')),
     agg1 as (
-        SELECT h.geom, h.hostname, d.feedtype_path, d.relay_hostid,
+        SELECT h.geom, h.hostname, d.feedtype_path_id, d.relay_host_id,
         d.avg_latency from ldm_hostnames h JOIN data d
-            on (h.id = d.relay_hostid)
+            on (h.id = d.relay_host_id)
         WHERE rank = 1 and geom is not null and not ST_IsEmpty(geom)),
     agg2 as (
-        SELECT h.geom, h.hostname, d.feedtype_path, d.node_hostid,
+        SELECT h.geom, h.hostname, d.feedtype_path_id, d.node_host_id,
         d.avg_latency from ldm_hostnames h JOIN data d
-            on (h.id = d.node_hostid)
+            on (h.id = d.node_host_id)
         WHERE rank = 1 and geom is not null and not ST_IsEmpty(geom))
 
     SELECT st_asgeojson(st_makeline(o.geom, t.geom), 2),
-    o.feedtype_path, o.relay_hostid,
-    o.hostname, t.node_hostid, t.hostname, o.avg_latency,
+    o.feedtype_path_id, o.relay_host_id,
+    o.hostname, t.node_host_id, t.hostname, o.avg_latency,
     st_length(st_makeline(o.geom, t.geom))
-    from agg1 o JOIN agg2 t on (o.feedtype_path = t.feedtype_path)
+    from agg1 o JOIN agg2 t on (o.feedtype_path_id = t.feedtype_path_id)
     """)
     utcnow = datetime.datetime.utcnow()
     res = {'type': 'FeatureCollection',
