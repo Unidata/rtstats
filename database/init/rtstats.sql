@@ -125,15 +125,14 @@ $func$ LANGUAGE plpgsql;
 CREATE TABLE ldm_feedtype_paths(
 	id SERIAL UNIQUE NOT NULL,
 	feedtype int REFERENCES ldm_feedtypes(id),
-	origin_hostname int REFERENCES ldm_hostnames(id),
-	relay_hostname int REFERENCES ldm_hostnames(id),
-	node_hostname int REFERENCES ldm_hostnames(id),
+	origin_hostid int REFERENCES ldm_hostnames(id),
+	relay_hostid int REFERENCES ldm_hostnames(id),
+	node_hostid int REFERENCES ldm_hostnames(id),
 	entry_added timestamptz default now()
 );
 GRANT SELECT on ldm_feedtype_paths to nobody;
 CREATE INDEX ldm_feedtype_paths_idx on
-	ldm_feedtype_paths(feedtype, origin_hostname, relay_hostname,
-	node_hostname);
+	ldm_feedtype_paths(feedtype, origin_hostid, relay_hostid, node_hostid);
 GRANT ALL on ldm_feedtype_paths to ldm;
 GRANT ALL on ldm_feedtype_paths_id_seq to ldm;
 
@@ -148,13 +147,13 @@ LOOP
 
    SELECT INTO feedtype_path_id f.id FROM ldm_feedtype_paths f
    WHERE f.feedtype = _feedtype and
-         f.origin_hostname = _origin and
-         f.relay_hostname = _relay and
-         f.node_hostname = _node;
+         f.origin_hostid = _origin and
+         f.relay_hostid = _relay and
+         f.node_hostid = _node;
 
    IF NOT FOUND THEN
-      INSERT INTO ldm_feedtype_paths(feedtype, origin_hostname,
-      relay_hostname, node_hostname) VALUES (
+      INSERT INTO ldm_feedtype_paths(feedtype, origin_hostid,
+      relay_hostid, node_hostid) VALUES (
 	  _feedtype, _origin,
 	  _relay, _node)
       RETURNING ldm_feedtype_paths.id INTO feedtype_path_id;
