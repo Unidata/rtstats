@@ -124,15 +124,15 @@ $func$ LANGUAGE plpgsql;
 
 CREATE TABLE ldm_feedtype_paths(
 	id SERIAL UNIQUE NOT NULL,
-	feedtype int REFERENCES ldm_feedtypes(id),
-	origin_hostid int REFERENCES ldm_hostnames(id),
-	relay_hostid int REFERENCES ldm_hostnames(id),
-	node_hostid int REFERENCES ldm_hostnames(id),
+	feedtype_id int REFERENCES ldm_feedtypes(id),
+	origin_host_id int REFERENCES ldm_hostnames(id),
+	relay_host_id int REFERENCES ldm_hostnames(id),
+	node_host_id int REFERENCES ldm_hostnames(id),
 	entry_added timestamptz default now()
 );
 GRANT SELECT on ldm_feedtype_paths to nobody;
 CREATE INDEX ldm_feedtype_paths_idx on
-	ldm_feedtype_paths(feedtype, origin_hostid, relay_hostid, node_hostid);
+	ldm_feedtype_paths(feedtype, origin_host_id, relay_host_id, node_host_id);
 GRANT ALL on ldm_feedtype_paths to ldm;
 GRANT ALL on ldm_feedtype_paths_id_seq to ldm;
 
@@ -147,13 +147,13 @@ LOOP
 
    SELECT INTO feedtype_path_id f.id FROM ldm_feedtype_paths f
    WHERE f.feedtype = _feedtype and
-         f.origin_hostid = _origin and
-         f.relay_hostid = _relay and
-         f.node_hostid = _node;
+         f.origin_host_id = _origin and
+         f.relay_host_id = _relay and
+         f.node_host_id = _node;
 
    IF NOT FOUND THEN
-      INSERT INTO ldm_feedtype_paths(feedtype, origin_hostid,
-      relay_hostid, node_hostid) VALUES (
+      INSERT INTO ldm_feedtype_paths(feedtype, origin_host_id,
+      relay_host_id, node_host_id) VALUES (
 	  _feedtype, _origin,
 	  _relay, _node)
       RETURNING ldm_feedtype_paths.id INTO feedtype_path_id;
@@ -173,7 +173,7 @@ $func$ LANGUAGE plpgsql;
 -- Storage of actual rtstats!
 
 CREATE TABLE ldm_rtstats(
-	feedtype_path int REFERENCES ldm_feedtype_paths(id),
+	feedtype_path_id int REFERENCES ldm_feedtype_paths(id),
 	queue_arrival timestamptz,
 	queue_recent timestamptz,
 	nprods bigint,
@@ -181,7 +181,7 @@ CREATE TABLE ldm_rtstats(
 	avg_latency real,
 	max_latency real,
 	slowest_at varchar(32),
-	version int REFERENCES ldm_versions(id),
+	version_id int REFERENCES ldm_versions(id),
 	entry_added timestamptz default now()
 );
 GRANT SELECT on ldm_rtstats to nobody;
