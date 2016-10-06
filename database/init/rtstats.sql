@@ -12,7 +12,7 @@ GRANT ALL on ldm_versions to ldm;
 GRANT ALL on ldm_versions_id_seq to ldm;
 
 -- lookup or creation of ldm_versions
-CREATE OR REPLACE FUNCTION get_ldm_version(_version text,
+CREATE OR REPLACE FUNCTION get_ldm_version_id(_version text,
 	OUT ldm_version_id int) AS
 $func$
 BEGIN
@@ -50,7 +50,7 @@ GRANT ALL on ldm_feedtypes to ldm;
 GRANT ALL on ldm_feedtypes_id_seq to ldm;
 
 -- lookup or creation of ldm_feedtypes
-CREATE OR REPLACE FUNCTION get_ldm_feedtype(_feedtype text,
+CREATE OR REPLACE FUNCTION get_ldm_feedtype_id(_feedtype text,
 	OUT ldm_feedtype_id int) AS
 $func$
 BEGIN
@@ -93,7 +93,7 @@ GRANT ALL on ldm_hostnames to ldm;
 GRANT ALL on ldm_hostnames_id_seq to ldm;
 
 -- lookup or creation of ldm_hostnames
-CREATE OR REPLACE FUNCTION get_ldm_hostname(_hostname text,
+CREATE OR REPLACE FUNCTION get_ldm_host_id(_hostname text,
 	OUT ldm_hostname_id int) AS
 $func$
 BEGIN
@@ -137,7 +137,7 @@ GRANT ALL on ldm_feedtype_paths to ldm;
 GRANT ALL on ldm_feedtype_paths_id_seq to ldm;
 
 -- lookup or creation of ldm_feedtype_paths
-CREATE OR REPLACE FUNCTION get_ldm_feedtype_path(_feedtype int, _origin int,
+CREATE OR REPLACE FUNCTION get_ldm_feedtype_path_id(_feedtype int, _origin int,
     _relay int, _node int, OUT feedtype_path_id int) AS
 $func$
 BEGIN
