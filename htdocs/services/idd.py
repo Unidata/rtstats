@@ -19,7 +19,7 @@ def run(feedtype):
     cursor = pgconn.cursor()
     cursor.execute("""
     with data as (
-        select r.feedtype_path, origin_hostname, relay_hostname, node_hostname,
+        select r.feedtype_path, origin_hostid, relay_hostid, node_hostid,
         avg_latency, r.entry_added, p.feedtype,
         rank() OVER (PARTITION by r.feedtype_path ORDER by r.entry_added DESC)
         from ldm_rtstats r JOIN ldm_feedtype_paths p
@@ -27,19 +27,19 @@ def run(feedtype):
         WHERE r.entry_added > now() - '1 hour'::interval
         and p.feedtype = get_ldm_feedtype('HDS')),
     agg1 as (
-        SELECT h.geom, h.hostname, d.feedtype_path, d.relay_hostname,
+        SELECT h.geom, h.hostname, d.feedtype_path, d.relay_hostid,
         d.avg_latency from ldm_hostnames h JOIN data d
-            on (h.id = d.relay_hostname)
+            on (h.id = d.relay_hostid)
         WHERE rank = 1 and geom is not null and not ST_IsEmpty(geom)),
     agg2 as (
-        SELECT h.geom, h.hostname, d.feedtype_path, d.node_hostname,
+        SELECT h.geom, h.hostname, d.feedtype_path, d.node_hostid,
         d.avg_latency from ldm_hostnames h JOIN data d
-            on (h.id = d.node_hostname)
+            on (h.id = d.node_hostid)
         WHERE rank = 1 and geom is not null and not ST_IsEmpty(geom))
 
     SELECT st_asgeojson(st_makeline(o.geom, t.geom), 2),
-    o.feedtype_path, o.relay_hostname,
-    o.hostname, t.node_hostname, t.hostname, o.avg_latency,
+    o.feedtype_path, o.relay_hostid,
+    o.hostname, t.node_hostid, t.hostname, o.avg_latency,
     st_length(st_makeline(o.geom, t.geom))
     from agg1 o JOIN agg2 t on (o.feedtype_path = t.feedtype_path)
     """)

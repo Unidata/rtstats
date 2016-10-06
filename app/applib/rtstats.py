@@ -71,12 +71,12 @@ def parser(cursor, line):
     feedtype = tokens[3]
     node_hostname = tokens[2]
     cursor.execute("""INSERT into ldm_rtstats
-    (feedtype_path, queue_arrival, queue_recent, nprods, nbytes,
-    avg_latency, max_latency, slowest_at, version) VALUES
-    (get_ldm_feedtype_path(get_ldm_feedtype(%s),
-        get_ldm_hostname(%s), get_ldm_hostname(%s),
-        get_ldm_hostname(%s)), %s, %s, %s, %s,
-    %s, %s, %s, get_ldm_version(%s))
+    (feedtype_path_id, queue_arrival, queue_recent, nprods, nbytes,
+    avg_latency, max_latency, slowest_at, version_id) VALUES
+    (get_ldm_feedtype_path_id(get_ldm_feedtype_id(%s),
+        get_ldm_host_id(%s), get_ldm_host_id(%s),
+        get_ldm_host_id(%s)), %s, %s, %s, %s,
+    %s, %s, %s, get_ldm_version_id(%s))
     """, (feedtype, origin_hostname, relay_hostname, node_hostname,
           queue_arrival,  queue_recent, nprods, nbytes, avg_latency,
           max_latency, slowest_at, version))
