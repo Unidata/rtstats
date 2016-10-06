@@ -102,10 +102,10 @@ LOOP
    BEGIN  -- start inner block inside loop to handle possible exception
 
    SELECT INTO ldm_hostname_id f.id FROM ldm_hostnames f
-   WHERE f.hostname = _hostname;
+   WHERE f.hostname = lower(_hostname);
 
    IF NOT FOUND THEN
-      INSERT INTO ldm_hostnames(hostname) VALUES (_hostname)
+      INSERT INTO ldm_hostnames(hostname) VALUES (lower(_hostname))
       RETURNING ldm_hostnames.id INTO ldm_hostname_id;
    END IF;
 
@@ -132,7 +132,7 @@ CREATE TABLE ldm_feedtype_paths(
 );
 GRANT SELECT on ldm_feedtype_paths to nobody;
 CREATE INDEX ldm_feedtype_paths_idx on
-	ldm_feedtype_paths(feedtype, origin_host_id, relay_host_id, node_host_id);
+	ldm_feedtype_paths(feedtype_id, origin_host_id, relay_host_id, node_host_id);
 GRANT ALL on ldm_feedtype_paths to ldm;
 GRANT ALL on ldm_feedtype_paths_id_seq to ldm;
 
@@ -146,13 +146,13 @@ LOOP
    BEGIN  -- start inner block inside loop to handle possible exception
 
    SELECT INTO feedtype_path_id f.id FROM ldm_feedtype_paths f
-   WHERE f.feedtype = _feedtype and
+   WHERE f.feedtype_id = _feedtype and
          f.origin_host_id = _origin and
          f.relay_host_id = _relay and
          f.node_host_id = _node;
 
    IF NOT FOUND THEN
-      INSERT INTO ldm_feedtype_paths(feedtype, origin_host_id,
+      INSERT INTO ldm_feedtype_paths(feedtype_id, origin_host_id,
       relay_host_id, node_host_id) VALUES (
 	  _feedtype, _origin,
 	  _relay, _node)
