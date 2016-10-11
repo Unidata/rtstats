@@ -1,6 +1,8 @@
 """Aggregate the hourly rtstats"""
 import rtstats_util as util
 import datetime
+import pytz
+
 
 def daily():
     pgconn = util.get_dbconn(rw=True)
