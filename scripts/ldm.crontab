@@ -1,3 +1,8 @@
+PYTHONPATH=/opt/rtstats/pylib
+CRON_TZ=UTC
+
 @reboot source /home/ldm/.bashrc; ~/bin/ldmadmin stop; ~/bin/ldmadmin start
 
 10 * * * * cd /opt/rtstats/scripts; python assign_hostname_geom.py
+
+15 * * * * cd /opt/rtstats/scripts; python agg_rtstats.py

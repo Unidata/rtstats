@@ -187,3 +187,38 @@ CREATE TABLE ldm_rtstats(
 GRANT SELECT on ldm_rtstats to nobody;
 GRANT ALL on ldm_rtstats to ldm;
 
+--------------------------------------------------------------------
+-- Storage of hourly aggregated stats
+--   + these are populated each hour via a cron job
+CREATE TABLE ldm_rtstats_hourly(
+	feedtype_path_id int REFERENCES ldm_feedtype_paths(id),
+	valid timestamptz,
+	entries int,
+	nprods bigint,
+	nbytes bigint,
+	min_latency real,
+	avg_latency real,
+	max_latency real
+);
+GRANT SELECT on ldm_rtstats_hourly to nobody;
+GRANT ALL on ldm_rtstats_hourly to ldm;
+CREATE INDEX ldm_rstats_hourly_idx
+	on ldm_rtstats_hourly(feedtype_path_id, valid);
+
+----------------------------------------------------------------------
+-- Storage of daily aggregated stats
+--   + these are populated via a cron job
+CREATE TABLE ldm_rtstats_daily(
+	feedtype_path_id int REFERENCES ldm_feedtype_paths(id),
+	valid date,
+	entries int,
+	nprods bigint,
+	nbytes bigint,
+	min_latency real,
+	avg_latency real,
+	max_latency real
+);
+GRANT SELECT on ldm_rtstats_daily to nobody;
+GRANT ALL on ldm_rtstats_daily to ldm;
+CREATE INDEX ldm_rstats_daily_idx
+	on ldm_rtstats_daily(feedtype_path_id, valid);
