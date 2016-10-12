@@ -3,10 +3,13 @@
 
     /cgi-bin/rtstats/siteindex
     /cgi-bin/rtstats/iddstats_nc?EXP+server1.smn.gov.ar
+    /cgi-bin/rtstats/iddbinstats_nc?EXP+server1.smn.gov.ar  [latency histogram]
+    /cgi-bin/rtstats/iddstats_vol_nc?EXP+server1.smn.gov.ar [volume]
 """
 import os
 import sys
 import requests
+import numpy as np
 import re
 import rtstats_util as util
 import pandas as pd
@@ -49,7 +52,7 @@ def handle_site(hostname):
 <td><a href="%(p)s/iddstats_vol_nc?%(f)s+%(h)s">volume</a></td>
 <td><a href="%(p)s/iddstats_num_nc?%(f)s+%(h)s">products</a></td>
 <td><a href="%(p)s/iddstats_topo_nc?%(f)s+%(h)s">topology</a></td>
-        """ % dict(h=hostname, f=feedtype, p="/cgi-bin/rtstats/"))
+        """ % dict(h=hostname, f=feedtype, p="/cgi-bin/rtstats"))
         sys.stdout.write("</tr>")
     sys.stdout.write("</table>")
 
@@ -103,7 +106,7 @@ def plot_latency(feedtype, host, logopt):
     df = pd.DataFrame(j['data'], columns=j['columns'])
     df = df[df['feedtype'] == feedtype]
     df['entry_added'] = pd.to_datetime(df['entry_added'])
-    fig = plt.figure(figsize=(11, 7))
+    _ = plt.figure(figsize=(11, 7))
     ax = plt.axes([0.1, 0.1, 0.6, 0.8])
     for _, grp in df.groupby('feedtype_path_id'):
         row = grp.iloc[0]
@@ -125,6 +128,72 @@ def plot_latency(feedtype, host, logopt):
     plt.savefig(sys.stdout)
 
 
+def plot_latency_histogram(feedtype, host):
+    import matplotlib
+    matplotlib.use('agg')
+    import matplotlib.pyplot as plt
+    req = requests.get(("http://rtstats.local/services/host/%s/rtstats.json"
+                        "?feedtype=%s") % (host, feedtype))
+    if req.status_code != 200:
+        sys.stdout.write("Content-type: text/plain\n\n")
+        sys.stdout.write("API Service Failure...")
+        return
+
+    j = req.json()
+    df = pd.DataFrame(j['data'], columns=j['columns'])
+    df['entry_added'] = pd.to_datetime(df['entry_added'])
+    (_, ax) = plt.subplots(1, 1, figsize=(11, 7))
+    data = df['avg_latency'].values
+    desc = df['avg_latency'].describe(percentiles=[0.75, 0.90, 0.95, 0.99])
+    for v, c in zip([75, 90, 95, 99], ['r', 'b', 'g', 'k']):
+        value = desc['%s%%' % (v,)]
+        ax.axvline(value, label="%s%% %.2fs" % (v, value), color=c, lw=2)
+    ax.hist(data, 50, normed=False,
+            weights=np.zeros_like(data) + 100. / data.size)
+    ax.set_title(("%s [%s]\n%s to %s UTC"
+                  ) % (host, feedtype,
+                       df['entry_added'].min().strftime("%Y%m%d/%H%M"),
+                       df['entry_added'].max().strftime("%Y%m%d/%H%M")))
+    ax.grid(True)
+    ax.legend(loc='best')
+    ax.set_ylabel("Percent [%]")
+    ax.set_xlabel("Latency [s]")
+    sys.stdout.write("Content-type: image/png\n\n")
+    plt.savefig(sys.stdout)
+
+
+def plot_volume(feedtype, host):
+    import matplotlib
+    matplotlib.use('agg')
+    import matplotlib.pyplot as plt
+    req = requests.get(("http://rtstats.local/services/host/%s/hourly.json"
+                        "?feedtype=%s") % (host, feedtype))
+    if req.status_code != 200:
+        sys.stdout.write("Content-type: text/plain\n\n")
+        sys.stdout.write("API Service Failure...")
+        return
+
+    j = req.json()
+    df = pd.DataFrame(j['data'], columns=j['columns'])
+    df['valid'] = pd.to_datetime(df['valid'])
+    df['path'] = df['origin'] + "_v_" + df['relay']
+    (_, ax) = plt.subplots(1, 1, figsize=(11, 7))
+    times = pd.date_range(df['valid'].min(),
+                          df['valid'].max(),
+                          freq='60min')
+    for path in df['path'].unique():
+        df2 = df[df['path'] == path].set_index('valid')
+        df2 = df2.resample(times)
+        ax.bar(df2.index.values, df2['nbytes'].values, width=1/24.)
+    ax.set_title(("%s [%s]\n%s to %s UTC"
+                  ) % (host, feedtype,
+                       df['valid'].min().strftime("%Y%m%d/%H%M"),
+                       df['valid'].max().strftime("%Y%m%d/%H%M")))
+    ax.grid(True)
+    sys.stdout.write("Content-type: image/png\n\n")
+    plt.savefig(sys.stdout)
+
+
 def main():
     uri = os.environ.get('REQUEST_URI', '')
     if uri.startswith('/cgi-bin/rtstats/siteindex'):
@@ -140,6 +209,16 @@ def main():
         elif len(tokens) == 2:
             tokens = [tokens[0], tokens[1], '']
         plot_latency(*tokens)
+    elif uri.startswith('/cgi-bin/rtstats/iddbinstats_nc'):
+        tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
+        if len(tokens) == 1:
+            tokens = ['IDS|DDPLUS', tokens[0]]
+        plot_latency_histogram(*tokens)
+    elif uri.startswith('/cgi-bin/rtstats/iddstats_vol_nc'):
+        tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
+        if len(tokens) == 1:
+            tokens = ['IDS|DDPLUS', tokens[0]]
+        plot_volume(*tokens)
     else:
         # TODO: disable in production
         sys.stdout.write("Content-type: text/plain\n\n")
