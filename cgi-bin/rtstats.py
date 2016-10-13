@@ -5,13 +5,13 @@
     /cgi-bin/rtstats/iddstats_nc?EXP+server1.smn.gov.ar
     /cgi-bin/rtstats/iddbinstats_nc?EXP+server1.smn.gov.ar  [latency histogram]
     /cgi-bin/rtstats/iddstats_vol_nc?EXP+server1.smn.gov.ar [volume]
+    /cgi-bin/rtstats/iddstats_num_nc?HDS+server1.smn.gov.ar [products]
 """
 import os
 import sys
 import requests
 import numpy as np
 import re
-import rtstats_util as util
 import pandas as pd
 RE_IP = re.compile('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$')
 
@@ -162,10 +162,11 @@ def plot_latency_histogram(feedtype, host):
     plt.savefig(sys.stdout)
 
 
-def plot_volume(feedtype, host):
+def plot_volume_or_prods(feedtype, host, col):
     import matplotlib
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
     req = requests.get(("http://rtstats.local/services/host/%s/hourly.json"
                         "?feedtype=%s") % (host, feedtype))
     if req.status_code != 200:
@@ -177,15 +178,23 @@ def plot_volume(feedtype, host):
     df = pd.DataFrame(j['data'], columns=j['columns'])
     df['valid'] = pd.to_datetime(df['valid'])
     df['path'] = df['origin'] + "_v_" + df['relay']
-    (_, ax) = plt.subplots(1, 1, figsize=(11, 7))
-    times = pd.date_range(df['valid'].min(),
-                          df['valid'].max(),
-                          freq='60min')
-    for path in df['path'].unique():
-        df2 = df[df['path'] == path].set_index('valid')
-        df2 = df2.resample(times)
-        ax.bar(df2.index.values, df2['nbytes'].values, width=1/24.)
-    ax.set_title(("%s [%s]\n%s to %s UTC"
+    df['nbytes'] /= (1024.*1024.*1024.)  # convert to GiB
+    _ = plt.figure(figsize=(11, 7))
+    ax = plt.axes([0.1, 0.1, 0.6, 0.8])
+    pdf = df[['valid', 'path', col]].pivot('valid', 'path', col)
+    floor = np.zeros(len(pdf.index))
+    colors = plt.get_cmap('rainbow')(np.linspace(0, 1, len(pdf.columns)))
+    for i, path in enumerate(pdf.columns):
+        tokens = path.split("_v_")
+        lbl = "%s\n-> %s" % (tokens[0], tokens[1])
+        ax.bar(pdf.index.values, pdf[path].values, width=1/24.,
+               bottom=floor, fc=colors[i], label=lbl, align='center')
+        floor += pdf[path].values
+    ax.legend(bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.,
+              fontsize=12)
+    ax.set_ylabel("GiB" if col == 'nbytes' else 'Number of Products')
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Hz\n%-d %b"))
+    ax.set_title(("%s [%s]\n%s through %s UTC"
                   ) % (host, feedtype,
                        df['valid'].min().strftime("%Y%m%d/%H%M"),
                        df['valid'].max().strftime("%Y%m%d/%H%M")))
@@ -214,11 +223,13 @@ def main():
         if len(tokens) == 1:
             tokens = ['IDS|DDPLUS', tokens[0]]
         plot_latency_histogram(*tokens)
-    elif uri.startswith('/cgi-bin/rtstats/iddstats_vol_nc'):
+    elif (uri.startswith('/cgi-bin/rtstats/iddstats_vol_nc') or
+            uri.startswith('/cgi-bin/rtstats/iddstats_num_nc')):
+        col = "nbytes" if uri.find('_vol_nc') > -1 else 'nprods'
         tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
         if len(tokens) == 1:
             tokens = ['IDS|DDPLUS', tokens[0]]
-        plot_volume(*tokens)
+        plot_volume_or_prods(tokens[0], tokens[1], col)
     else:
         # TODO: disable in production
         sys.stdout.write("Content-type: text/plain\n\n")
