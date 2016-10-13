@@ -19,6 +19,13 @@
     RewriteRule ^host/(.*)/(.*).json(.*) host.py?hostname=$1&service=$2$3 [QSA]
     RewriteRule ^feedtypes.json(.*) feedtypes.py$1 [QSA]
   </Directory>
+
+  <Directory "/opt/rtstats/htdocs/rtstats">
+    AddHandler cgi-script .py
+    RewriteEngine On
+    RewriteRule ^stats.html stats.php
+  </Directory>
+
   
   ScriptAlias /cgi-bin/ "/opt/rtstats/cgi-bin/"
   <Directory "/opt/rtstats/cgi-bin">

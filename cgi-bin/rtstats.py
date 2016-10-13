@@ -13,6 +13,7 @@ import requests
 import numpy as np
 import re
 import pandas as pd
+import myview
 RE_IP = re.compile('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$')
 
 
@@ -72,22 +73,25 @@ def handle_siteindex():
         d2 = domains.setdefault(d, dict())
         d2[host] = ldmversion
 
-    sys.stdout.write(("<table border=\"1\" cellpadding=\"2\" cellspacing=\"0\""
-                      "><thead><tr><th>Domain</th>"
-                      "<th>Hosts</th></tr></thead>"))
+    content = ("<table border=\"1\" cellpadding=\"2\" cellspacing=\"0\""
+               "><thead><tr><th>Domain</th>"
+               "<th>Hosts</th></tr></thead>")
     keys = domains.keys()
     keys.sort()
     for d in keys:
         domain = domains[d]
         dkeys = domain.keys()
         dkeys.sort()
-        sys.stdout.write(("<tr><th>%s</th><td>") % (d,))
+        content += ("<tr><th>%s</th><td>") % (d,)
         for h in dkeys:
-            sys.stdout.write(("<a href=\"/cgi-bin/rtstats/siteindex?%s\">"
-                              "%s</a> [%s]<br />"
-                              ) % (h, h, domain[h]))
-        sys.stdout.write("</td></tr>")
-    sys.stdout.write("</table>")
+            content += ("<a href=\"/cgi-bin/rtstats/siteindex?%s\">"
+                        "%s</a> [%s]<br />"
+                        ) % (h, h, domain[h])
+        content += "</td></tr>"
+    content += "</table>"
+    view = myview.MyView()
+    view.vars['content'] = content
+    sys.stdout.write(view.render('main.html'))
 
 
 def plot_latency(feedtype, host, logopt):
