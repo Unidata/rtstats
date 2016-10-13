@@ -3,18 +3,24 @@
 
     /services/host/<hostname>/feedtypes.json
     /services/host/<hostname>/rtstats.json
+    /services/host/<hostname>/topology.json
 
 """
 import memcache
 import cgi
 import sys
 import rtstats_util as util
+import json
+import collections
+import copy
+
+
+def Tree():
+    return collections.defaultdict(Tree)
 
 
 def handle_rtstats(hostname, feedtype):
     """Emit JSON for rtstats for this host"""
-    import json
-
     pgconn = util.get_dbconn()
     cursor = pgconn.cursor()
     flimit = ''
@@ -47,8 +53,6 @@ def handle_rtstats(hostname, feedtype):
 
 def handle_hourly(hostname, feedtype):
     """Emit JSON for rtstats for this host"""
-    import json
-
     pgconn = util.get_dbconn()
     cursor = pgconn.cursor()
     flimit = ''
@@ -84,10 +88,56 @@ def handle_hourly(hostname, feedtype):
     return json.dumps(res)
 
 
+def handle_topology(hostname, feedtype):
+    """Generate topology for this feedtype"""
+    if feedtype == '':
+        return json.dumps("NO_FEEDTYPE_SET_ERROR")
+    pgconn = util.get_dbconn()
+    cursor = pgconn.cursor()
+    # compute all upstreams for this feedtype
+    upstreams = {}
+    cursor.execute("""
+    WITH active as (
+        select distinct id from
+        ldm_feedtype_paths p JOIN ldm_rtstats_hourly r
+        on (p.id = r.feedtype_path_id)
+        WHERE p.feedtype_id = get_ldm_feedtype_id(%s)
+        and r.valid > (now() - '24 hours'::interval))
+    select distinct
+    (select hostname from ldm_hostnames where id = p.relay_host_id) as relay,
+    (select hostname from ldm_hostnames where id = p.node_host_id) as node
+    from ldm_feedtype_paths p JOIN active a on (p.id = a.id)
+    """, (feedtype,))
+    for row in cursor:
+        upstreams.setdefault(row[1], []).append(row[0])
+
+    if upstreams.get(hostname) is None:
+        return json.dumps("NO_TOPOLOGY_ERROR")
+    paths = [[hostname, x] for x in upstreams[hostname]]
+    # print "inital upstreams are =>", paths
+    depth = 2
+    while depth < 10:
+        newpaths = []
+        for path in paths:
+            if len(path) == depth:
+                # print "upstreams of", path[-1], "are", upstreams.get(path[-1])
+                for up in upstreams.get(path[-1], []):
+                    newpaths.append(path + [up, ])
+        if len(newpaths) == 0:
+            break
+        paths = paths + newpaths
+        # print("===== %s ====" % (depth,))
+        # for path in paths:
+        #    print(",".join(path))
+        depth += 1
+    res = dict()
+    res['hostname'] = hostname
+    res['paths'] = paths
+    return json.dumps(res)
+
+
 def handle_feedtypes(hostname):
     """Generate geojson for this feedtype"""
-    import json
-
     pgconn = util.get_dbconn()
     cursor = pgconn.cursor()
     cursor.execute("""
@@ -123,6 +173,8 @@ def main():
             res = handle_rtstats(hostname, feedtype)
         elif service == 'hourly':
             res = handle_hourly(hostname, feedtype)
+        elif service == 'topology':
+            res = handle_topology(hostname, feedtype)
         mc.set(mckey, res, 3600)
     if cb is None:
         sys.stdout.write(res)
@@ -131,3 +183,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    # handle_topology('metfs1.agron.iastate.edu', 'IDS|DDPLUS')

@@ -6,6 +6,7 @@
     /cgi-bin/rtstats/iddbinstats_nc?EXP+server1.smn.gov.ar  [latency histogram]
     /cgi-bin/rtstats/iddstats_vol_nc?EXP+server1.smn.gov.ar [volume]
     /cgi-bin/rtstats/iddstats_num_nc?HDS+server1.smn.gov.ar [products]
+    /cgi-bin/rtstats/iddstats_topo_nc?HDS+metfs1.agron.iastate.edu [topology]
 """
 import os
 import sys
@@ -89,6 +90,36 @@ def handle_siteindex():
                         ) % (h, h, domain[h])
         content += "</td></tr>"
     content += "</table>"
+    view = myview.MyView()
+    view.vars['content'] = content
+    sys.stdout.write(view.render('main.html'))
+
+
+def handle_topology(hostname, feedtype):
+    sys.stdout.write("Content-type: text/html\n\n")
+    req = requests.get(("http://rtstats.local/services/host/%s/"
+                        "topology.json?feedtype=%s"
+                        ) % (hostname, feedtype))
+    if req.status_code != 200:
+        sys.stdout.write("API Service Failure...")
+        return
+    j = req.json()
+    routes = {}
+    if isinstance(j, unicode):
+        view = myview.MyView()
+        view.vars['content'] = "No topology found for host"
+        sys.stdout.write(view.render('main.html'))
+        return
+    for path in j['paths']:
+        routes[",".join(path)] = path[-1]
+    content = "<br />%s\n" % (hostname,)
+    keys = routes.keys()
+    keys.sort()
+    for key in keys:
+        content += "<br />"
+        content += "&nbsp;&nbsp;&nbsp;&nbsp;" * (len(key.split(",")) - 1)
+        content += ("<a href=\"iddstats_topo_nc?%s+%s\">%s</a>\n"
+                    ) % (feedtype, routes[key], routes[key])
     view = myview.MyView()
     view.vars['content'] = content
     sys.stdout.write(view.render('main.html'))
@@ -234,6 +265,9 @@ def main():
         if len(tokens) == 1:
             tokens = ['IDS|DDPLUS', tokens[0]]
         plot_volume_or_prods(tokens[0], tokens[1], col)
+    elif uri.startswith('/cgi-bin/rtstats/iddstats_topo_nc'):
+        tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
+        handle_topology(tokens[1], tokens[0])
     else:
         # TODO: disable in production
         sys.stdout.write("Content-type: text/plain\n\n")
@@ -242,3 +276,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    # handle_topology('chucknorris.agron.iastate.edu', 'EXP')
