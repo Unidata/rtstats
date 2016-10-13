@@ -16,13 +16,18 @@ def daily():
         DELETE from ldm_rtstats_daily WHERE valid = %s
         """, (sts.date(),))
     cursor.execute("""
-    WITH agg as (
-        select feedtype_path_id, %s as v,
-        count(*), sum(nprods), sum(nbytes),
-        min(avg_latency), avg(avg_latency), max(max_latency) from ldm_rtstats
-        WHERE entry_added >= %s
-        and entry_added < %s
-        GROUP by feedtype_path_id, v)
+    WITH hourly as (
+        select feedtype_path_id, date_trunc('hour', queue_arrival) as v,
+        count(*), max(nprods) as max_nprods, max(nbytes) as max_nbytes,
+        min(avg_latency) as minl, avg(avg_latency) as avgl,
+        max(avg_latency) as maxl from ldm_rtstats
+        WHERE queue_arrival >= %s
+        and queue_arrival < %s
+        GROUP by feedtype_path_id, v),
+    agg as (
+        SELECT feedtype_path_id, %s as v, sum(count), sum(max_nprods),
+        sum(max_nbytes), min(minl), avg(avgl), max(maxl) from hourly
+        GROUP by feedtype_path_id)
     INSERT into ldm_rtstats_daily SELECT * from agg
     """, (sts.date(), sts, ets))
     cursor.close()
@@ -38,11 +43,11 @@ def hourly():
     maxval = cursor.fetchone()[0]
     cursor.execute("""
     WITH agg as (
-        select feedtype_path_id, date_trunc('hour', entry_added) as v,
-        count(*), sum(nprods), sum(nbytes),
+        select feedtype_path_id, date_trunc('hour', queue_arrival) as v,
+        count(*), max(nprods), max(nbytes),
         min(avg_latency), avg(avg_latency), max(max_latency) from ldm_rtstats
-        WHERE entry_added >= %s + '1 hour'::interval
-        and entry_added < date_trunc('hour', now())
+        WHERE queue_arrival >= %s + '1 hour'::interval
+        and queue_arrival < date_trunc('hour', now())
         GROUP by feedtype_path_id, v)
     INSERT into ldm_rtstats_hourly SELECT * from agg
     """, (maxval or datetime.datetime(1971, 1, 1), ))
