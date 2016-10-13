@@ -186,6 +186,8 @@ CREATE TABLE ldm_rtstats(
 );
 GRANT SELECT on ldm_rtstats to nobody;
 GRANT ALL on ldm_rtstats to ldm;
+CREATE INDEX ldm_rtstats_queue_arrival_idx
+	ON ldm_rtstats(queue_arrival);
 
 --------------------------------------------------------------------
 -- Storage of hourly aggregated stats
