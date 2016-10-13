@@ -4,8 +4,7 @@ import datetime
 import pytz
 
 
-def daily():
-    pgconn = util.get_dbconn(rw=True)
+def daily(pgconn):
     cursor = pgconn.cursor()
     # we run for the day for the previous hour
     utcnow = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
@@ -32,11 +31,9 @@ def daily():
     """, (sts.date(), sts, ets))
     cursor.close()
     pgconn.commit()
-    pgconn.close()
 
 
-def hourly():
-    pgconn = util.get_dbconn(rw=True)
+def hourly(pgconn):
     cursor = pgconn.cursor()
     # figure out what our most recent stats are for
     cursor.execute("""SELECT max(valid) from ldm_rtstats_hourly""")
@@ -53,8 +50,37 @@ def hourly():
     """, (maxval or datetime.datetime(1971, 1, 1), ))
     cursor.close()
     pgconn.commit()
-    pgconn.close()
+
+
+def cleanup(pgconn):
+    """Based on configuration, purge old data within the database"""
+    cursor = pgconn.cursor()
+    config = util.get_config()
+    for table, prop in zip(['ldm_rtstats', 'ldm_rtstats_hourly',
+                            'ldm_rtstats_daily'],
+                           ['retain_rtstats_raw[hours]',
+                            'retain_rtstats_hourly[days]',
+                            'retain_rtstats_daily[days]']):
+        interval = config.get(prop)
+        if interval is None or interval <= 0:
+            continue
+        timecol = "entry_added" if table == 'ldm_rtstats' else 'valid'
+        multiplier = 24 if table != 'ldm_rtstats' else 1
+        hours = interval * multiplier
+        cursor.execute("""
+        DELETE from """ + table + """
+        WHERE """ + timecol + """ < (now() - '%s hours'::interval)
+        """ % (hours,))
+        # print("Removed %s rows from table: %s" % (cursor.rowcount, table))
+    cursor.close()
+    pgconn.commit()
+
+
+def main():
+    pgconn = util.get_dbconn(rw=True)
+    daily(pgconn)
+    hourly(pgconn)
+    cleanup(pgconn)
 
 if __name__ == '__main__':
-    daily()
-    hourly()
+    main()

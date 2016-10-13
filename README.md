@@ -33,3 +33,15 @@ pytz python-psycopg2 python-GeoIP postgis2_96 memcached python-requests \
 python-pandas
 
 add rtstats.local to /etc/hosts
+
+### `config/settings.json` options
+
+Various codes within this repository get their runtime configuration from
+the `config/settings.json` file.  The following table details these configuration
+settings.
+
+| property | description |
+| -------- | ----------- |
+| retain_rtstats_raw[hours] | How long, in hours, to retain database entries of raw rtstats ingested, setting to `null` disables purging old data |
+| retain_rtstats_hourly[days] | How long, in days, to retain database entries of aggregated hourly data. setting to `null` disables purging old data |
+| retain_rtstats_daily[days] | How long, in days, to retain database entries of aggreated daily data. setting to `null` disables purging old data |

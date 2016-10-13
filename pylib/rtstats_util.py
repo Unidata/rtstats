@@ -5,11 +5,16 @@ import json
 import os
 
 
-def get_dbconn(rw=False):
-    """return a database connection"""
+def get_config():
+    """Return a dict() of our runtime configuration"""
     fn = "%s/settings.json" % (os.path.join(os.path.dirname(__file__),
                                             "../config"),)
-    config = json.load(open(fn))
+    return json.load(open(fn))
+
+
+def get_dbconn(rw=False):
+    """return a database connection"""
+    config = get_config()
     dbopts = config['databaserw' if rw is True else 'databasero']
 
     return psycopg2.connect(dbname=dbopts['name'], host=dbopts['host'],
