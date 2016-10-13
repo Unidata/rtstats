@@ -97,7 +97,7 @@
       <h5>Real-Time IDD Topology, click line for more information</h5>
 
 <div id="detailfeature"></div>
-<br />
+<br /><strong>View Feedtype:</strong> <select name="ftselect" id="feedtypeselect"></select>
 <div id="map" class="map"></div>
 
     </div> <!-- /#container -->

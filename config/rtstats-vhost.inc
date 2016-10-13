@@ -17,6 +17,7 @@
     RewriteRule ^idd.geojson(.*) idd.py$1 [QSA]
     RewriteRule ^hosts.geojson(.*) hosts.py$1 [QSA]
     RewriteRule ^host/(.*)/(.*).json(.*) host.py?hostname=$1&service=$2$3 [QSA]
+    RewriteRule ^feedtypes.json(.*) feedtypes.py$1 [QSA]
   </Directory>
   
   ScriptAlias /cgi-bin/ "/opt/rtstats/cgi-bin/"

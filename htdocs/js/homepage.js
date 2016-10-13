@@ -1,3 +1,4 @@
+var feedtype = "IDS|DDPLUS";
 var levels = [60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 1, -9999999];
 var colors = ['#ff0000', '#ff112c', '#ffaab7', '#97008a', '#9c2bef',
               '#8e67cd', '#00508b', '#0091ff', '#00b3ee', '#00f0ee',
@@ -5,7 +6,7 @@ var colors = ['#ff0000', '#ff112c', '#ffaab7', '#97008a', '#9c2bef',
 
 var detailFeature = function(feature){
 	$('#detailfeature').html("<strong>" + feature.get("relay") +"</strong>" +
-			" to <strong>" + feature.get('node') +"</strong> for LDM Feedtype: TBD" +
+			" to <strong>" + feature.get('node') +"</strong> for LDM Feedtype: " + feedtype +
 			" has latency "+ feature.get('latency') +"s");
 }
 
@@ -51,13 +52,16 @@ var styleFunction = function(feature) {
 
 	return styles;
 };
+
+$(function() {
+
 var raster = new ol.layer.Tile({
 	source : new ol.source.OSM()
 });
 var geojsonSource = new ol.source.Vector({
 	format : new ol.format.GeoJSON(),
 	projection : ol.proj.get('EPSG:4326'),
-	url : '/services/idd.geojson'
+url : '/services/idd.geojson'
 });
 var geojson = new ol.layer.Vector({
 	source : geojsonSource,
@@ -67,15 +71,15 @@ var geojson = new ol.layer.Vector({
 var map = new ol.Map({
 	layers : [ raster, geojson ],
 	target : 'map',
-	view : new ol.View({
-		projection : ol.proj.get('EPSG:3857'),
+view : new ol.View({
+	projection : ol.proj.get('EPSG:3857'),
 		center : [ -11000000, 4600000 ],
 		zoom : 4
 	})
 });
 
 map.on('click', function(evt) {
-    // console.log('map click() called');
+// console.log('map click() called');
     var pixel = map.getEventPixel(evt.originalEvent);
     var feature = map.forEachFeatureAtPixel(pixel, function(feature, layer) {
         return feature;
@@ -84,3 +88,26 @@ map.on('click', function(evt) {
     	detailFeature(feature);
     } 
 });
+
+$("#feedtypeselect").change(function(){
+	feedtype = $(this).val();
+	geojson.setSource(new ol.source.Vector({
+		format : new ol.format.GeoJSON(),
+		projection : ol.proj.get('EPSG:4326'),
+		url : '/services/idd.geojson?feedtype=' + feedtype
+	}));
+});
+
+// Populate the Feedtype select widget
+$.ajax({
+	url: "/services/feedtypes.json",
+	dataType: 'json',
+	success: function(json){
+		$.each(json['feedtypes'], function(i, value) {
+			$('#feedtypeselect').append($('<option>').text(value).attr('value', value));
+        });
+		$("#feedtypeselect").val(feedtype);
+	}
+});
+
+}); // end of ready()
