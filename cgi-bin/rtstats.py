@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 """I should answer the following URIs
 
-    /cgi-bin/rtstats/siteindex
-    /cgi-bin/rtstats/iddstats_nc?EXP+server1.smn.gov.ar
-    /cgi-bin/rtstats/iddbinstats_nc?EXP+server1.smn.gov.ar  [latency histogram]
-    /cgi-bin/rtstats/iddstats_vol_nc?EXP+server1.smn.gov.ar [volume]
-    /cgi-bin/rtstats/iddstats_num_nc?HDS+server1.smn.gov.ar [products]
-    /cgi-bin/rtstats/iddstats_topo_nc?HDS+metfs1.agron.iastate.edu [topology]
+    .../siteindex
+    .../iddstats_nc?EXP+server1.smn.gov.ar
+    .../iddbinstats_nc?EXP+server1.smn.gov.ar  [latency histogram]
+    .../iddstats_vol_nc?EXP+server1.smn.gov.ar [volume]
+    .../iddstats_num_nc?HDS+server1.smn.gov.ar [products]
+    .../iddstats_topo_nc?HDS+metfs1.agron.iastate.edu [topology]
+    .../rtstats_summary_volume?metfs1.agron.iastate.edu [text stats]
 """
 import os
 import sys
@@ -58,6 +59,11 @@ def handle_site(hostname):
         sys.stdout.write("</tr>")
     sys.stdout.write("</table>")
 
+    sys.stdout.write("""<p>
+<a href="%(p)s?%(h)s">Cumulative volume summary</a>
+<a href="%(p)s?%(h)s+GRAPH">Cumulative volume summary praph</a>
+    """ % dict(h=hostname, p="/cgi-bin/rtstats/rtstats_summary_volume"))
+
 
 def handle_siteindex():
     sys.stdout.write("Content-type: text/html\n\n")
@@ -90,6 +96,95 @@ def handle_siteindex():
                         ) % (h, h, domain[h])
         content += "</td></tr>"
     content += "</table>"
+    view = myview.MyView()
+    view.vars['content'] = content
+    sys.stdout.write(view.render('main.html'))
+
+
+def handle_volume_stats_plot(hostname):
+    import matplotlib
+    matplotlib.use('agg')
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+    req = requests.get(("http://rtstats.local/services/host/%s/"
+                        "hourly.json"
+                        ) % (hostname, ))
+    if req.status_code != 200:
+        sys.stdout.write("API Service Failure...")
+        return
+    j = req.json()
+    df = pd.DataFrame(j['data'], columns=j['columns'])
+    df['nbytes'] /= (1024 * 1024)
+    df['valid'] = pd.to_datetime(df['valid'])
+    _ = plt.figure(figsize=(11, 7))
+    ax = plt.axes([0.1, 0.1, 0.6, 0.8])
+    gdf = df[['valid', 'feedtype', 'nbytes']].groupby(['valid', 'feedtype']
+                                                      ).sum()
+    gdf.reset_index(inplace=True)
+    pdf = gdf.pivot('valid', 'feedtype', 'nbytes')
+    floor = np.zeros(len(pdf.index))
+    colors = plt.get_cmap('rainbow')(np.linspace(0, 1, len(pdf.columns)))
+    for i, feedtype in enumerate(pdf.columns):
+        ax.bar(pdf.index.values, pdf[feedtype].values, width=1/24.,
+               bottom=floor, fc=colors[i], label=feedtype, align='center')
+        floor += pdf[feedtype].values
+
+    ax.legend(bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.,
+              fontsize=12)
+    ax.set_title(("%s\n%s to %s UTC"
+                  ) % (hostname,
+                       df['valid'].min().strftime("%Y%m%d/%H%M"),
+                       df['valid'].max().strftime("%Y%m%d/%H%M")))
+    ax.grid(True)
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Hz\n%-d %b"))
+    ax.set_ylabel("Data Volume [MiB]")
+    sys.stdout.write("Content-type: image/png\n\n")
+    plt.savefig(sys.stdout)
+
+
+def handle_volume_stats(hostname):
+    sys.stdout.write("Content-type: text/html\n\n")
+    req = requests.get(("http://rtstats.local/services/host/%s/"
+                        "hourly.json"
+                        ) % (hostname, ))
+    if req.status_code != 200:
+        sys.stdout.write("API Service Failure...")
+        return
+    j = req.json()
+    df = pd.DataFrame(j['data'], columns=j['columns'])
+    df['valid'] = pd.to_datetime(df['valid'])
+    maxbytes = df[['valid', 'nbytes']].groupby('valid').sum().max()['nbytes']
+    avgbytes = df[['valid', 'nbytes']].groupby('valid').sum().mean()['nbytes']
+    avgprods = df[['valid', 'nprods']].groupby('valid').sum().mean()['nprods']
+    feedtypetots = df.groupby('feedtype').sum()['nbytes'].sort_values(
+        ascending=False)
+    total = float(feedtypetots.sum())
+    listing = ""
+    for feedtype, nbytes in feedtypetots.iteritems():
+        fdf = df[df['feedtype'] == feedtype]
+        avgbyteshr = fdf[['valid', 'nbytes']].groupby('valid').sum(
+            ).mean()['nbytes']
+        maxbyteshr = fdf[['valid', 'nbytes']].groupby('valid').sum(
+            ).max()['nbytes']
+        avgprodshr = fdf[['valid', 'nprods']].groupby('valid').sum(
+            ).mean()['nprods']
+        listing += ("%-18s %12.3f    [%7.3f%%] %12.3f %12.3f\n"
+                    ) % (feedtype, avgbyteshr / 1000000.,
+                         nbytes / total * 100.,
+                         maxbyteshr / 1000000., avgprodshr)
+    content = """<pre>
+    Data Volume Summary for %s
+
+Maximum hourly volume  %10.3f M bytes/hour
+Average hourly volume  %10.3f M bytes/hour
+
+Average products per hour  %10.0f prods/hour
+
+Feed                           Average             Maximum     Products
+                     (M byte/hour)            (M byte/hour)   number/hour
+%s
+</pre>
+""" % (hostname, maxbytes / 1000000., avgbytes / 1000000., avgprods, listing)
     view = myview.MyView()
     view.vars['content'] = content
     sys.stdout.write(view.render('main.html'))
@@ -268,6 +363,12 @@ def main():
     elif uri.startswith('/cgi-bin/rtstats/iddstats_topo_nc'):
         tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
         handle_topology(tokens[1], tokens[0])
+    elif uri.startswith('/cgi-bin/rtstats/rtstats_summary_volume'):
+        tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
+        if len(tokens) == 1:
+            handle_volume_stats(tokens[0])
+        else:
+            handle_volume_stats_plot(tokens[0])
     else:
         # TODO: disable in production
         sys.stdout.write("Content-type: text/plain\n\n")
@@ -276,4 +377,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+    # handle_volume_stats('metfs1.agron.iastate.edu')
     # handle_topology('chucknorris.agron.iastate.edu', 'EXP')
