@@ -16,6 +16,7 @@ import numpy as np
 import re
 import pandas as pd
 import myview
+import rtstats_util as util
 RE_IP = re.compile('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$')
 
 
@@ -105,7 +106,6 @@ def handle_volume_stats_plot(hostname):
     import matplotlib
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
     req = requests.get(("http://rtstats.local/services/host/%s/"
                         "hourly.json"
                         ) % (hostname, ))
@@ -136,7 +136,7 @@ def handle_volume_stats_plot(hostname):
                        df['valid'].min().strftime("%Y%m%d/%H%M"),
                        df['valid'].max().strftime("%Y%m%d/%H%M")))
     ax.grid(True)
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Hz\n%-d %b"))
+    util.fancy_labels(ax)
     ax.set_ylabel("Data Volume [MiB]")
     sys.stdout.write("Content-type: image/png\n\n")
     plt.savefig(sys.stdout)
@@ -224,7 +224,6 @@ def plot_latency(feedtype, host, logopt):
     import matplotlib
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
     req = requests.get(("http://rtstats.local/services/host/%s/rtstats.json"
                         ) % (host, ))
     if req.status_code != 200:
@@ -252,7 +251,7 @@ def plot_latency(feedtype, host, logopt):
     ax.grid(True)
     if logopt.upper() == 'LOG':
         ax.set_yscale('log')
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Hz\n%-d %b"))
+    util.fancy_labels(ax)
     ax.set_ylabel("Average Latency [s]")
     sys.stdout.write("Content-type: image/png\n\n")
     plt.savefig(sys.stdout)
@@ -296,7 +295,6 @@ def plot_volume_or_prods(feedtype, host, col):
     import matplotlib
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
     req = requests.get(("http://rtstats.local/services/host/%s/hourly.json"
                         "?feedtype=%s") % (host, feedtype))
     if req.status_code != 200:
@@ -317,13 +315,15 @@ def plot_volume_or_prods(feedtype, host, col):
     for i, path in enumerate(pdf.columns):
         tokens = path.split("_v_")
         lbl = "%s\n-> %s" % (tokens[0], tokens[1])
+        if tokens[0] == tokens[1]:
+            lbl = "%s [SRC]" % (tokens[0],)
         ax.bar(pdf.index.values, pdf[path].values, width=1/24.,
                bottom=floor, fc=colors[i], label=lbl, align='center')
         floor += pdf[path].values
     ax.legend(bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.,
               fontsize=12)
     ax.set_ylabel("GiB" if col == 'nbytes' else 'Number of Products')
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Hz\n%-d %b"))
+    util.fancy_labels(ax)
     ax.set_title(("%s [%s]\n%s through %s UTC"
                   ) % (host, feedtype,
                        df['valid'].min().strftime("%Y%m%d/%H%M"),
