@@ -202,7 +202,8 @@ CREATE TABLE ldm_rtstats_hourly(
 	nbytes bigint,
 	min_latency real,
 	avg_latency real,
-	max_latency real
+	max_latency real,
+	version_id int REFERENCES ldm_versions(id)
 );
 GRANT SELECT on ldm_rtstats_hourly to nobody;
 GRANT ALL on ldm_rtstats_hourly to ldm;
@@ -220,7 +221,8 @@ CREATE TABLE ldm_rtstats_daily(
 	nbytes bigint,
 	min_latency real,
 	avg_latency real,
-	max_latency real
+	max_latency real,
+	version_id int REFERENCES ldm_versions(id)
 );
 GRANT SELECT on ldm_rtstats_daily to nobody;
 GRANT ALL on ldm_rtstats_daily to ldm;

@@ -15,17 +15,11 @@ def daily(pgconn):
         DELETE from ldm_rtstats_daily WHERE valid = %s
         """, (sts.date(),))
     cursor.execute("""
-    WITH hourly as (
-        select feedtype_path_id, date_trunc('hour', queue_arrival) as v,
-        count(*), max(nprods) as max_nprods, max(nbytes) as max_nbytes,
-        min(avg_latency) as minl, avg(avg_latency) as avgl,
-        max(avg_latency) as maxl from ldm_rtstats
-        WHERE queue_arrival >= %s
-        and queue_arrival < %s
-        GROUP by feedtype_path_id, v),
-    agg as (
-        SELECT feedtype_path_id, %s as v, sum(count), sum(max_nprods),
-        sum(max_nbytes), min(minl), avg(avgl), max(maxl) from hourly
+    with agg as (
+        SELECT feedtype_path_id, %s as v, sum(entries), sum(nprods),
+        sum(nbytes), min(min_latency), avg(avg_latency),
+        max(max_latency), max(version_id) from ldm_rtstats_hourly
+        where valid >= %s and valid < %s
         GROUP by feedtype_path_id)
     INSERT into ldm_rtstats_daily SELECT * from agg
     """, (sts.date(), sts, ets))
@@ -38,15 +32,56 @@ def hourly(pgconn):
     # figure out what our most recent stats are for
     cursor.execute("""SELECT max(valid) from ldm_rtstats_hourly""")
     maxval = cursor.fetchone()[0]
+    # Do non-NEXRAD2 first, as we need not optimize this one
     cursor.execute("""
     WITH agg as (
         select feedtype_path_id, date_trunc('hour', queue_arrival) as v,
         count(*), max(nprods), max(nbytes),
-        min(avg_latency), avg(avg_latency), max(max_latency) from ldm_rtstats
+        min(avg_latency), avg(avg_latency), max(max_latency),
+        max(version_id) as version_id
+        from ldm_rtstats r JOIN ldm_feedtype_paths p
+            on (r.feedtype_path_id = p.id)
         WHERE queue_arrival >= %s + '1 hour'::interval
         and queue_arrival < date_trunc('hour', now())
+        and p.feedtype_id != get_ldm_feedtype_id('NEXRAD2')
         GROUP by feedtype_path_id, v)
     INSERT into ldm_rtstats_hourly SELECT * from agg
+    """, (maxval or datetime.datetime(1971, 1, 1), ))
+    cursor.close()
+    pgconn.commit()
+
+    # Do NEXRAD2 now with some optimizations
+    #  + we basically group by relay + node and then set the origin to
+    #    the relay node
+    cursor = pgconn.cursor()
+    cursor.execute("""
+    WITH agg as (
+        select date_trunc('hour', queue_arrival) as v,
+        count(*), max(nprods) as max_nprods, max(nbytes) as max_nbytes,
+        min(avg_latency) as min_latency,
+        avg(avg_latency) as avg_latency,
+        max(max_latency) as max_latency,
+        p.origin_host_id, p.relay_host_id, p.node_host_id,
+        max(version_id) as version_id
+        from ldm_rtstats r JOIN ldm_feedtype_paths p
+            on (r.feedtype_path_id = p.id)
+        WHERE queue_arrival >= %s + '1 hour'::interval
+        and queue_arrival < date_trunc('hour', now())
+        and p.feedtype_id = get_ldm_feedtype_id('NEXRAD2')
+        GROUP by origin_host_id, relay_host_id, node_host_id, v),
+    agg2 as (
+        SELECT relay_host_id, node_host_id, v, sum(count) as count,
+        sum(max_nprods) as nprods, sum(max_nbytes) as nbytes,
+        min(min_latency) as min_latency, avg(avg_latency) as avg_latency,
+        max(max_latency) as max_latency, max(version_id) as version_id
+        from agg
+        GROUP By relay_host_id, node_host_id, v)
+    INSERT into ldm_rtstats_hourly(feedtype_path_id, valid, entries,
+    nprods, nbytes, min_latency, avg_latency, max_latency, version_id)
+        SELECT get_ldm_feedtype_path_id(get_ldm_feedtype_id('NEXRAD2'),
+        relay_host_id, relay_host_id,  node_host_id), v, count,
+        nprods, nbytes, min_latency, avg_latency, max_latency,
+        version_id from agg2
     """, (maxval or datetime.datetime(1971, 1, 1), ))
     cursor.close()
     pgconn.commit()
@@ -78,8 +113,8 @@ def cleanup(pgconn):
 
 def main():
     pgconn = util.get_dbconn(rw=True)
-    daily(pgconn)
     hourly(pgconn)
+    daily(pgconn)
     cleanup(pgconn)
 
 if __name__ == '__main__':
