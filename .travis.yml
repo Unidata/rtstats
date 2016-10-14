@@ -23,7 +23,7 @@ before_install:
   - sudo service apache2 restart || sudo cat /var/log/apache2/error.log
   # apt provided requests, pandas is too old
   - "sudo pip install requests"
-  - "sudo pip install pandas"
+  - "sudo pip install pandas anytree"
   - curl http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz | sudo gunzip - > /tmp/GeoLiteCity.dat
 install:
   - "pip install --upgrade pip"

@@ -25,13 +25,28 @@ def get_dbconn(rw=False):
 
 def fancy_labels(ax):
     """Make matplotlib date axis labels great again"""
+    xlim = ax.get_xlim()
+    days = xlim[1] - xlim[0]
+
+    daily = True
+    if days < 4:
+        daily = False
+        ax.xaxis.set_major_locator(mdates.HourLocator(range(0, 24, 4)))
+    elif days < 31:
+        ax.xaxis.set_major_locator(mdates.DayLocator([1, 8, 15, 22, 29]))
+    elif days < 63:
+        ax.xaxis.set_major_locator(mdates.DayLocator([1, 15]))
+    else:
+        ax.xaxis.set_major_locator(mdates.DayLocator([1, ]))
+
     def my_formatter(x, pos=None):
         x = mdates.num2date(x)
-        if pos == 0 or x.hour == 0:
+        if daily:
+            fmt = "%-d %b"
+        elif pos == 0 or x.hour == 0:
             fmt = "%-Hz\n%-d %b"
         else:
             fmt = "%-H"
         return x.strftime(fmt)
 
-    ax.xaxis.set_major_locator(mdates.HourLocator(range(0, 24, 4)))
     ax.xaxis.set_major_formatter(FuncFormatter(my_formatter))

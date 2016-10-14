@@ -32,6 +32,8 @@ libxml2-devel gcc-c++ byacc make perl bc lftp python-twisted-web \
 pytz python-psycopg2 python-GeoIP postgis2_96 memcached python-requests \
 python-pandas
 
+pip install anytree
+
 add rtstats.local to /etc/hosts
 
 ### `config/settings.json` options

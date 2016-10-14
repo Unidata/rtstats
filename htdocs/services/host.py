@@ -9,10 +9,10 @@
 import memcache
 import cgi
 import sys
+import pandas as pd
 import rtstats_util as util
 import json
 import collections
-import copy
 
 
 def Tree():
@@ -51,7 +51,7 @@ def handle_rtstats(hostname, feedtype):
     return json.dumps(res)
 
 
-def handle_hourly(hostname, feedtype):
+def handle_weekly(hostname, feedtype, since):
     """Emit JSON for rtstats for this host"""
     pgconn = util.get_dbconn()
     cursor = pgconn.cursor()
@@ -59,6 +59,104 @@ def handle_hourly(hostname, feedtype):
     if feedtype != '':
         flimit = " and p.feedtype_id = get_ldm_feedtype_id('%s') " % (feedtype,
                                                                       )
+    tlimit = ''
+    if since is not None:
+        tlimit = (" and h.valid >= '%s' "
+                  ) % (pd.to_datetime(since).strftime("%Y-%m-%d"),)
+    cursor.execute("""
+    WITH weekly as (
+        SELECT
+        extract(year from valid) as yr, extract(week from valid) as week,
+        feedtype_path_id,
+        min(min_latency) as min_latency, avg(avg_latency) as avg_latency,
+        max(max_latency) as max_latency, sum(nprods) as nprods,
+        sum(nbytes) as nbytes,
+        max(feedtype_id) as feedtype_id from
+        ldm_rtstats_daily h JOIN ldm_feedtype_paths p on
+            (h.feedtype_path_id = p.id) WHERE
+        p.node_host_id = get_ldm_host_id(%s) """ + flimit + """
+        """ + tlimit + """ GROUP by yr, week, feedtype_path_id)
+    select
+    to_char(
+        (yr || '-01-01')::date + (week || ' weeks')::interval, 'YYYY-mm-dd')
+        as v,
+    h.feedtype_path_id,
+    (select hostname from ldm_hostnames where id = p.origin_host_id) as origin,
+    (select hostname from ldm_hostnames where id = p.relay_host_id) as relay,
+    min_latency,
+    avg_latency,
+    max_latency,
+    nprods::bigint,
+    nbytes::bigint,
+    (select feedtype from ldm_feedtypes where id = p.feedtype_id) as feedtype
+    from weekly h JOIN ldm_feedtype_paths p on
+    (h.feedtype_path_id = p.id)
+    ORDER by v ASC
+    """, (hostname, ))
+    res = dict()
+    res['hostname'] = hostname
+    res['columns'] = ['valid', 'feedtype_path_id', 'origin', 'relay',
+                      'min_latency', 'avg_latency', 'max_latency',
+                      'nprods', 'nbytes', 'feedtype']
+    res['data'] = []
+    for row in cursor:
+        res['data'].append(row)
+    return json.dumps(res)
+
+
+def handle_daily(hostname, feedtype, since):
+    """Emit JSON for rtstats for this host"""
+    pgconn = util.get_dbconn()
+    cursor = pgconn.cursor()
+    flimit = ''
+    if feedtype != '':
+        flimit = " and p.feedtype_id = get_ldm_feedtype_id('%s') " % (feedtype,
+                                                                      )
+    tlimit = ''
+    if since is not None:
+        tlimit = (" and h.valid >= '%s' "
+                  ) % (pd.to_datetime(since).strftime("%Y-%m-%d"),)
+    cursor.execute("""
+    select
+    to_char(valid, 'YYYY-MM-DD'),
+    h.feedtype_path_id,
+    (select hostname from ldm_hostnames where id = p.origin_host_id) as origin,
+    (select hostname from ldm_hostnames where id = p.relay_host_id) as relay,
+    min_latency,
+    avg_latency,
+    max_latency,
+    nprods,
+    nbytes,
+    (select feedtype from ldm_feedtypes where id = p.feedtype_id) as feedtype
+    from ldm_rtstats_daily h JOIN ldm_feedtype_paths p on
+    (h.feedtype_path_id = p.id) WHERE
+    p.node_host_id = get_ldm_host_id(%s) """ + flimit + """
+    """ + tlimit + """
+    ORDER by h.valid ASC
+    """, (hostname, ))
+    res = dict()
+    res['hostname'] = hostname
+    res['columns'] = ['valid', 'feedtype_path_id', 'origin', 'relay',
+                      'min_latency', 'avg_latency', 'max_latency',
+                      'nprods', 'nbytes', 'feedtype']
+    res['data'] = []
+    for row in cursor:
+        res['data'].append(row)
+    return json.dumps(res)
+
+
+def handle_hourly(hostname, feedtype, since):
+    """Emit JSON for rtstats for this host"""
+    pgconn = util.get_dbconn()
+    cursor = pgconn.cursor()
+    flimit = ''
+    if feedtype != '':
+        flimit = " and p.feedtype_id = get_ldm_feedtype_id('%s') " % (feedtype,
+                                                                      )
+    tlimit = ''
+    if since is not None:
+        tlimit = (" and h.valid >= '%s' "
+                  ) % (pd.to_datetime(since).strftime("%Y-%m-%d %H:%M+00"),)
     cursor.execute("""
     select
     to_char(valid at time zone 'UTC', 'YYYY-MM-DDThh24:MI:SSZ'),
@@ -73,8 +171,8 @@ def handle_hourly(hostname, feedtype):
     (select feedtype from ldm_feedtypes where id = p.feedtype_id) as feedtype
     from ldm_rtstats_hourly h JOIN ldm_feedtype_paths p on
     (h.feedtype_path_id = p.id) WHERE
-    p.node_host_id = get_ldm_host_id(%s) and
-    h.valid > now() - '36 hours'::interval """ + flimit + """
+    p.node_host_id = get_ldm_host_id(%s) """ + flimit + """
+    """ + tlimit + """
     ORDER by h.valid ASC
     """, (hostname, ))
     res = dict()
@@ -120,7 +218,6 @@ def handle_topology(hostname, feedtype):
         newpaths = []
         for path in paths:
             if len(path) == depth:
-                # print "upstreams of", path[-1], "are", upstreams.get(path[-1])
                 for up in upstreams.get(path[-1], []):
                     newpaths.append(path + [up, ])
         if len(newpaths) == 0:
@@ -162,6 +259,7 @@ def main():
     hostname = form.getfirst('hostname', '')
     service = form.getfirst('service', '')
     feedtype = form.getfirst('feedtype', '')
+    since = form.getfirst('since')
     mckey = "/services/host/%s/%s.json?feedtype=%s" % (hostname, service,
                                                        feedtype)
     mc = memcache.Client(['memcached.local:11211'], debug=0)
@@ -172,7 +270,11 @@ def main():
         elif service == 'rtstats':
             res = handle_rtstats(hostname, feedtype)
         elif service == 'hourly':
-            res = handle_hourly(hostname, feedtype)
+            res = handle_hourly(hostname, feedtype, since)
+        elif service == 'daily':
+            res = handle_daily(hostname, feedtype, since)
+        elif service == 'weekly':
+            res = handle_weekly(hostname, feedtype, since)
         elif service == 'topology':
             res = handle_topology(hostname, feedtype)
         mc.set(mckey, res, 3600)

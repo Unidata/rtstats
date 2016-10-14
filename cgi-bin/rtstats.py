@@ -8,14 +8,20 @@
     .../iddstats_num_nc?HDS+server1.smn.gov.ar [products]
     .../iddstats_topo_nc?HDS+metfs1.agron.iastate.edu [topology]
     .../rtstats_summary_volume?metfs1.agron.iastate.edu [text stats]
+    .../topoindex?tree [feedtype listing]
+    .../rtstats_feedtree?EXP [reverse topology]
+    .../iddstats_vol_nc1?EXP+10.100.69.110 [volume summaries]
+    .../rtstats_summary_volume1?10.100.69.110+GRAPH [volume summary]
 """
 import os
 import sys
 import requests
 import numpy as np
 import re
+import datetime
 import pandas as pd
 import myview
+from anytree import Node, RenderTree
 import rtstats_util as util
 RE_IP = re.compile('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$')
 
@@ -34,6 +40,30 @@ def get_domain(val):
     return ".".join(val.split(".")[1:][::-1])
 
 
+def handle_topoindex():
+    sys.stdout.write("Content-type: text/html\n\n")
+    req = requests.get("http://rtstats.local/services/feedtypes.json")
+    if req.status_code != 200:
+        sys.stdout.write("API Service Failure...")
+        return
+    j = req.json()
+    listing = ""
+    for feedtype in j['feedtypes']:
+        listing += ("<br /><a href=\"rtstats_feedtree?%s\">%s</a>\n"
+                    ) % (feedtype, feedtype)
+    view = myview.MyView()
+    view.vars['content'] = """
+    <h2>RTSTATS Index by Sites Reporting Feeds</h2>
+<p>
+For information regarding the type of data contained within a feed type or feed
+set listed below, see the <a href="fixme">LDM Feedtypes</a> documentation.</p>
+<p>
+<h2>IDD Topology Feed List</h2>
+%s
+    """ % (listing,)
+    sys.stdout.write(view.render('main.html'))
+
+
 def handle_site(hostname):
     sys.stdout.write("Content-type: text/html\n\n")
     req = requests.get(("http://rtstats.local/services/host/%s/feedtypes.json"
@@ -42,31 +72,66 @@ def handle_site(hostname):
         sys.stdout.write("API Service Failure...")
         return
     j = req.json()
-    sys.stdout.write(("<table border=\"1\" cellpadding=\"2\" cellspacing=\"0\""
-                      "><thead><tr><th>Feed Name</th>"
-                      "<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>"
-                      "<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>"
-                      "</tr></thead>"))
+    content = ("<table border=\"1\" cellpadding=\"2\" cellspacing=\"0\""
+               "><thead><tr><th>Feed Name</th>"
+               "<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>"
+               "<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>"
+               "</tr></thead>")
     for feedtype in j['feedtypes']:
-        sys.stdout.write(("<tr><th>%s</th>") % (feedtype,))
-        sys.stdout.write("""
+        content += ("<tr><th>%s</th>") % (feedtype,)
+        content += """
 <td><a href="%(p)s/iddstats_nc?%(f)s+%(h)s">latency</a></td>
 <td><a href="%(p)s/iddstats_nc?%(f)s+%(h)s+LOG">log(latency)</a></td>
 <td><a href="%(p)s/iddbinstats_nc?%(f)s+%(h)s">histogram</a></td>
 <td><a href="%(p)s/iddstats_vol_nc?%(f)s+%(h)s">volume</a></td>
 <td><a href="%(p)s/iddstats_num_nc?%(f)s+%(h)s">products</a></td>
 <td><a href="%(p)s/iddstats_topo_nc?%(f)s+%(h)s">topology</a></td>
-        """ % dict(h=hostname, f=feedtype, p="/cgi-bin/rtstats"))
-        sys.stdout.write("</tr>")
-    sys.stdout.write("</table>")
+        """ % dict(h=hostname, f=feedtype, p="/cgi-bin/rtstats")
+        content += "</tr>"
+    content += "</table>"
 
-    sys.stdout.write("""<p>
+    content += """<p>
 <a href="%(p)s?%(h)s">Cumulative volume summary</a>
-<a href="%(p)s?%(h)s+GRAPH">Cumulative volume summary praph</a>
-    """ % dict(h=hostname, p="/cgi-bin/rtstats/rtstats_summary_volume"))
+<a href="%(p)s?%(h)s+GRAPH">Cumulative volume summary graph</a>
+    """ % dict(h=hostname, p="/cgi-bin/rtstats/rtstats_summary_volume")
+    view = myview.MyView()
+    view.vars['content'] = content
+    sys.stdout.write(view.render('main.html'))
 
 
-def handle_siteindex():
+def handle_sitesummary(hostname):
+    sys.stdout.write("Content-type: text/html\n\n")
+    req = requests.get(("http://rtstats.local/services/host/%s/feedtypes.json"
+                        ) % (hostname, ))
+    if req.status_code != 200:
+        sys.stdout.write("API Service Failure...")
+        return
+    j = req.json()
+    content = ("<table border=\"1\" cellpadding=\"2\" cellspacing=\"0\""
+               "><thead><tr><h3>FEED NAME</h3></td><td>&nbsp</td>"
+               "<td>&nbsp</td><td>&nbsp</td>"
+               "</tr></thead>")
+    for feedtype in j['feedtypes']:
+        content += ("<tr><th>%s</th>") % (feedtype,)
+        content += """
+<td><a href="%(p)s/iddstats_vol_nc1?%(f)s+%(h)s">Hourly volume</a></td>
+<td><a href="%(p)s/iddstats_vol_nc1?%(f)s+%(h)s+-b 86400">Daily volume</a></td>
+<td><a href="%(p)s/iddstats_vol_nc1?%(f)s+%(h)s+-b 604800">Weekly volume</a>
+</td>
+        """ % dict(h=hostname, f=feedtype, p="/cgi-bin/rtstats")
+        content += "</tr>"
+    content += "</table>"
+
+    content += """<p>
+<a href="%(p)s?%(h)s">Cumulative volume summary</a>
+<a href="%(p)s?%(h)s+GRAPH">Cumulative volume summary graph</a>
+    """ % dict(h=hostname, p="/cgi-bin/rtstats/rtstats_summary_volume1")
+    view = myview.MyView()
+    view.vars['content'] = content
+    sys.stdout.write(view.render('main.html'))
+
+
+def handle_siteindex(link):
     sys.stdout.write("Content-type: text/html\n\n")
     req = requests.get("http://rtstats.local/services/hosts.geojson")
     if req.status_code != 200:
@@ -92,9 +157,9 @@ def handle_siteindex():
         dkeys.sort()
         content += ("<tr><th>%s</th><td>") % (d,)
         for h in dkeys:
-            content += ("<a href=\"/cgi-bin/rtstats/siteindex?%s\">"
+            content += ("<a href=\"/cgi-bin/rtstats/%s?%s\">"
                         "%s</a> [%s]<br />"
-                        ) % (h, h, domain[h])
+                        ) % (link, h, h, domain[h])
         content += "</td></tr>"
     content += "</table>"
     view = myview.MyView()
@@ -102,13 +167,13 @@ def handle_siteindex():
     sys.stdout.write(view.render('main.html'))
 
 
-def handle_volume_stats_plot(hostname):
+def handle_volume_stats_plot(hostname, period):
     import matplotlib
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
     req = requests.get(("http://rtstats.local/services/host/%s/"
-                        "hourly.json"
-                        ) % (hostname, ))
+                        "%s.json"
+                        ) % (hostname, period))
     if req.status_code != 200:
         sys.stdout.write("API Service Failure...")
         return
@@ -192,32 +257,92 @@ Feed                           Average             Maximum     Products
 
 def handle_topology(hostname, feedtype):
     sys.stdout.write("Content-type: text/html\n\n")
-    req = requests.get(("http://rtstats.local/services/host/%s/"
-                        "topology.json?feedtype=%s"
-                        ) % (hostname, feedtype))
+    req = requests.get(("http://rtstats.local/services/feedtype/%s/"
+                        "topology.json"
+                        ) % (feedtype, ))
     if req.status_code != 200:
         sys.stdout.write("API Service Failure...")
         return
     j = req.json()
-    routes = {}
     if isinstance(j, unicode):
         view = myview.MyView()
         view.vars['content'] = "No topology found for host"
         sys.stdout.write(view.render('main.html'))
         return
-    for path in j['paths']:
-        routes[",".join(path)] = path[-1]
-    content = "<br />%s\n" % (hostname,)
-    keys = routes.keys()
-    keys.sort()
-    for key in keys:
-        content += "<br />"
-        content += "&nbsp;&nbsp;&nbsp;&nbsp;" * (len(key.split(",")) - 1)
-        content += ("<a href=\"iddstats_topo_nc?%s+%s\">%s</a>\n"
-                    ) % (feedtype, routes[key], routes[key])
+    upstreams = j['upstreams']
+    nodedict = dict()
+    nodedict[hostname] = Node(hostname)
+
+    def get_node(host, parent):
+        if host in nodedict:
+            return nodedict[host]
+        # we add the node
+        nodedict[host] = Node(host, parent)
+        # If nothing upstream, we can terminate and return
+        for upstream in upstreams.get(host, []):
+            get_node(upstream, nodedict[host])
+
+    for host in upstreams.get(hostname, []):
+        if host in nodedict:
+            nodedict.pop(host)
+        nodedict[host] = get_node(host, nodedict[hostname])
+
+    content = u"<pre>\n"
+    for pre, _, node in RenderTree(nodedict[hostname]):
+        content += ("%s<a href=\"iddstats_topo_nc?%s+%s\">%s</a>\n"
+                    ) % (pre, feedtype, node.name, node.name)
+    content += "</pre>\n"
     view = myview.MyView()
     view.vars['content'] = content
-    sys.stdout.write(view.render('main.html'))
+    sys.stdout.write(view.render('main.html').encode('utf-8'))
+
+
+def handle_rtopology(feedtype):
+    sys.stdout.write("Content-type: text/html\n\n")
+    req = requests.get(("http://rtstats.local/services/feedtype/%s/"
+                        "rtopology.json"
+                        ) % (feedtype, ))
+    if req.status_code != 200:
+        sys.stdout.write("API Service Failure...")
+        return
+    j = req.json()
+    if isinstance(j, unicode):
+        view = myview.MyView()
+        view.vars['content'] = "No topology found for host"
+        sys.stdout.write(view.render('main.html'))
+        return
+    downstreams = j['downstreams']
+    content = u"<pre>\n"
+    for hostname, ar in downstreams.iteritems():
+        if len(ar) == 0 or (len(ar) == 1 and ar[0] == hostname):
+            content += ("<a href=\"iddstats_topo_nc?%s+%s\">%s</a>\n"
+                        ) % (feedtype, hostname, hostname)
+            continue
+        nodedict = dict()
+        nodedict[hostname] = Node(hostname)
+
+        def get_node(host, parent):
+            if host in nodedict:
+                return nodedict[host]
+            # we add the node
+            nodedict[host] = Node(host, parent)
+            # If nothing upstream, we can terminate and return
+            for upstream in downstreams.get(host, []):
+                get_node(upstream, nodedict[host])
+
+        for host in downstreams.get(hostname, []):
+            if host in nodedict:
+                nodedict.pop(host)
+            nodedict[host] = get_node(host, nodedict[hostname])
+
+        for pre, _, node in RenderTree(nodedict[hostname]):
+            content += ("%s<a href=\"iddstats_topo_nc?%s+%s\">%s</a>\n"
+                        ) % (pre, feedtype, node.name, node.name)
+    content += u"</pre>\n"
+
+    view = myview.MyView()
+    view.vars['content'] = content
+    sys.stdout.write(view.render('main.html').encode('utf-8'))
 
 
 def plot_latency(feedtype, host, logopt):
@@ -291,12 +416,63 @@ def plot_latency_histogram(feedtype, host):
     plt.savefig(sys.stdout)
 
 
+def plot_volume_long(feedtype, host, period, col='nbytes'):
+    import matplotlib
+    matplotlib.use('agg')
+    import matplotlib.pyplot as plt
+    service = 'hourly'
+    if period == '-b%2086400':
+        service = 'daily'
+    elif period == '-b%20604800':
+        service = 'weekly'
+    sys.stderr.write(repr(period))
+    req = requests.get(("http://rtstats.local/services/host/%s/%s.json"
+                        "?feedtype=%s") % (host, service, feedtype))
+    if req.status_code != 200:
+        sys.stdout.write("Content-type: text/plain\n\n")
+        sys.stdout.write("API Service Failure...")
+        return
+
+    j = req.json()
+    df = pd.DataFrame(j['data'], columns=j['columns'])
+    df['valid'] = pd.to_datetime(df['valid'])
+    df['path'] = df['origin'] + "_v_" + df['relay']
+    df['nbytes'] /= (1024.*1024.*1024.)  # convert to GiB
+    _ = plt.figure(figsize=(11, 7))
+    ax = plt.axes([0.1, 0.1, 0.6, 0.8])
+    pdf = df[['valid', 'path', col]].pivot('valid', 'path', col)
+    floor = np.zeros(len(pdf.index))
+    colors = plt.get_cmap('rainbow')(np.linspace(0, 1, len(pdf.columns)))
+    for i, path in enumerate(pdf.columns):
+        tokens = path.split("_v_")
+        lbl = "%s\n-> %s" % (tokens[0], tokens[1])
+        if tokens[0] == tokens[1]:
+            lbl = "%s [SRC]" % (tokens[0],)
+        ax.bar(pdf.index.values, pdf[path].values, width=1/24.,
+               bottom=floor, fc=colors[i], ec=colors[i],
+               label=lbl, align='center')
+        floor += pdf[path].values
+    ax.legend(bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.,
+              fontsize=12)
+    ax.set_ylabel("GiB" if col == 'nbytes' else 'Number of Products')
+    util.fancy_labels(ax)
+    ax.set_title(("%s [%s]\n%s through %s UTC"
+                  ) % (host, feedtype,
+                       df['valid'].min().strftime("%Y%m%d/%H%M"),
+                       df['valid'].max().strftime("%Y%m%d/%H%M")))
+    ax.grid(True)
+    sys.stdout.write("Content-type: image/png\n\n")
+    plt.savefig(sys.stdout)
+
+
 def plot_volume_or_prods(feedtype, host, col):
     import matplotlib
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
+    utcnow = datetime.datetime.utcnow() - datetime.timedelta(hours=36)
+    since = utcnow.strftime("%Y-%m-%dT%H:%M:%SZ")
     req = requests.get(("http://rtstats.local/services/host/%s/hourly.json"
-                        "?feedtype=%s") % (host, feedtype))
+                        "?feedtype=%s&since=%s") % (host, feedtype, since))
     if req.status_code != 200:
         sys.stdout.write("Content-type: text/plain\n\n")
         sys.stdout.write("API Service Failure...")
@@ -338,9 +514,15 @@ def main():
     if uri.startswith('/cgi-bin/rtstats/siteindex'):
         host = os.environ.get('QUERY_STRING', '')[:256]
         if host == '':
-            handle_siteindex()
+            handle_siteindex('siteindex')
         else:
             handle_site(host)
+    elif uri.startswith('/cgi-bin/rtstats/sitesummaryindex'):
+        host = os.environ.get('QUERY_STRING', '')[:256]
+        if host == '':
+            handle_siteindex('sitesummaryindex')
+        else:
+            handle_sitesummary(host)
     elif uri.startswith('/cgi-bin/rtstats/iddstats_nc'):
         tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
         if len(tokens) == 1:
@@ -353,6 +535,11 @@ def main():
         if len(tokens) == 1:
             tokens = ['IDS|DDPLUS', tokens[0]]
         plot_latency_histogram(*tokens)
+    elif uri.startswith('/cgi-bin/rtstats/iddstats_vol_nc1'):
+        tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
+        if len(tokens) == 2:
+            tokens = [tokens[0], tokens[1], None]
+        plot_volume_long(tokens[0], tokens[1], tokens[2])
     elif (uri.startswith('/cgi-bin/rtstats/iddstats_vol_nc') or
             uri.startswith('/cgi-bin/rtstats/iddstats_num_nc')):
         col = "nbytes" if uri.find('_vol_nc') > -1 else 'nprods'
@@ -363,12 +550,23 @@ def main():
     elif uri.startswith('/cgi-bin/rtstats/iddstats_topo_nc'):
         tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
         handle_topology(tokens[1], tokens[0])
+    elif uri.startswith('/cgi-bin/rtstats/rtstats_summary_volume1'):
+        tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
+        if len(tokens) == 1:
+            handle_volume_stats(tokens[0])
+        else:
+            handle_volume_stats_plot(tokens[0], "daily")
     elif uri.startswith('/cgi-bin/rtstats/rtstats_summary_volume'):
         tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
         if len(tokens) == 1:
             handle_volume_stats(tokens[0])
         else:
-            handle_volume_stats_plot(tokens[0])
+            handle_volume_stats_plot(tokens[0], "hourly")
+    elif uri.startswith('/cgi-bin/rtstats/rtstats_feedtree'):
+        tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
+        handle_rtopology(tokens[0])
+    elif uri.startswith('/cgi-bin/rtstats/topoindex?tree'):
+        handle_topoindex()
     else:
         # TODO: disable in production
         sys.stdout.write("Content-type: text/plain\n\n")
