@@ -1,3 +1,4 @@
+var geojson;
 var feedtype = "IDS|DDPLUS";
 var levels = [60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 1, -9999999];
 var colors = ['#ff0000', '#ff112c', '#ffaab7', '#97008a', '#9c2bef',
@@ -7,7 +8,27 @@ var colors = ['#ff0000', '#ff112c', '#ffaab7', '#97008a', '#9c2bef',
 var detailFeature = function(feature){
 	$('#detailfeature').html("<strong>" + feature.get("relay") +"</strong>" +
 			" to <strong>" + feature.get('node') +"</strong> for LDM Feedtype: " + feedtype +
-			" has latency "+ feature.get('latency') +"s");
+			" has latency "+ feature.get('latency').toFixed(3) +"s");
+}
+
+var loadTopology = function(){
+	// manual fetching, since we want to have some access to the GeoJSON data
+	// to provide some metadata on this feed to the web UI
+	$.ajax({
+		url: "/services/idd.geojson?feedtype="+ feedtype,
+		dataType: 'json',
+		success: function(json){
+			geojson.getSource().clear();
+			geojson.getSource().addFeatures(
+					new ol.format.GeoJSON().readFeatures(json, {
+						featureProjection: ol.proj.get('EPSG:3857')
+					})
+			);
+			$("#diagnostics").html("Showing "+ json.count +" feed paths "+
+					"generated in " + json['query_time[secs]'].toFixed(2) +
+					" seconds valid "+ json["generation_time"]);
+		}
+	});
 }
 
 var styleFunction = function(feature) {
@@ -55,59 +76,54 @@ var styleFunction = function(feature) {
 
 $(function() {
 
-var raster = new ol.layer.Tile({
-	source : new ol.source.OSM()
-});
-var geojsonSource = new ol.source.Vector({
-	format : new ol.format.GeoJSON(),
-	projection : ol.proj.get('EPSG:4326'),
-url : '/services/idd.geojson'
-});
-var geojson = new ol.layer.Vector({
-	source : geojsonSource,
-	style : styleFunction
-});
+	var raster = new ol.layer.Tile({
+		source : new ol.source.OSM()
+	});
 
-var map = new ol.Map({
-	layers : [ raster, geojson ],
-	target : 'map',
-view : new ol.View({
-	projection : ol.proj.get('EPSG:3857'),
-		center : [ -11000000, 4600000 ],
-		zoom : 4
-	})
-});
+	geojson = new ol.layer.Vector({
+		source: new ol.source.Vector({
+			format: new ol.format.GeoJSON(),
+			projection : ol.proj.get('EPSG:4326')
+		}),
+		style : styleFunction
+	});
 
-map.on('click', function(evt) {
-// console.log('map click() called');
-    var pixel = map.getEventPixel(evt.originalEvent);
-    var feature = map.forEachFeatureAtPixel(pixel, function(feature, layer) {
-        return feature;
-    });
-    if (feature){
-    	detailFeature(feature);
-    } 
-});
+	var map = new ol.Map({
+		layers : [ raster, geojson ],
+		target : 'map',
+		view : new ol.View({
+			projection : ol.proj.get('EPSG:3857'),
+			center : [ -11000000, 4600000 ],
+			zoom : 4
+		})
+	});
 
-$("#feedtypeselect").change(function(){
-	feedtype = $(this).val();
-	geojson.setSource(new ol.source.Vector({
-		format : new ol.format.GeoJSON(),
-		projection : ol.proj.get('EPSG:4326'),
-		url : '/services/idd.geojson?feedtype=' + feedtype
-	}));
-});
+	map.on('click', function(evt) {
+		var pixel = map.getEventPixel(evt.originalEvent);
+		var feature = map.forEachFeatureAtPixel(pixel, function(feature, layer) {
+			return feature;
+		});
+		if (feature){
+			detailFeature(feature);
+		} 
+	});
 
-// Populate the Feedtype select widget
-$.ajax({
-	url: "/services/feedtypes.json",
-	dataType: 'json',
-	success: function(json){
-		$.each(json['feedtypes'], function(i, value) {
-			$('#feedtypeselect').append($('<option>').text(value).attr('value', value));
-        });
-		$("#feedtypeselect").val(feedtype);
-	}
-});
+	$("#feedtypeselect").change(function(){
+		feedtype = $(this).val();
+		loadTopology();
+	});
+
+	// Populate the Feedtype select widget
+	$.ajax({
+		url: "/services/feedtypes.json",
+		dataType: 'json',
+		success: function(json){
+			$.each(json['feedtypes'], function(i, value) {
+				$('#feedtypeselect').append($('<option>').text(value).attr('value', value));
+			});
+			$("#feedtypeselect").val(feedtype);
+		}
+	});
+	loadTopology();
 
 }); // end of ready()
