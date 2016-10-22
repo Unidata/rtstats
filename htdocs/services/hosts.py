@@ -3,6 +3,7 @@
 
     /services/hosts.geojson
 
+This service caches for 1 hour before refreshing.
 """
 import memcache
 import cgi
@@ -17,10 +18,11 @@ def run():
 
     pgconn = psycopg2.connect(dbname='rtstats', user='nobody')
     cursor = pgconn.cursor()
+    sts = datetime.datetime.utcnow()
     cursor.execute("""
     WITH data as (
-        SELECT distinct feedtype_path_id, version_id from ldm_rtstats
-        WHERE entry_added > now() - '24 hours'::interval),
+        SELECT distinct feedtype_path_id, version_id from ldm_rtstats_hourly
+        WHERE valid > now() - '24 hours'::interval),
     agg1 as (
         SELECT distinct p.node_host_id, d.version_id from
         data d JOIN ldm_feedtype_paths p on (d.feedtype_path_id = p.id))
@@ -35,6 +37,7 @@ def run():
            'crs': {'type': 'EPSG',
                    'properties': {'code': 4326, 'coordinate_order': [1, 0]}},
            'features': [],
+           'query_time[secs]': (utcnow - sts).total_seconds(),
            'generation_time': utcnow.strftime("%Y-%m-%dT%H:%M:%SZ"),
            'count': cursor.rowcount}
     for row in cursor:

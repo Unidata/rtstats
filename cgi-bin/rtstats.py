@@ -146,9 +146,12 @@ def handle_siteindex(link):
         d2 = domains.setdefault(d, dict())
         d2[host] = ldmversion
 
-    content = ("<table border=\"1\" cellpadding=\"2\" cellspacing=\"0\""
-               "><thead><tr><th>Domain</th>"
-               "<th>Hosts</th></tr></thead>")
+    content = """
+    <table border="1" cellpadding="2" cellspacing="0">
+    <thead>
+        <tr><th>Domain</th><th>Hosts</th></tr>
+    </thead>
+    """
     keys = domains.keys()
     keys.sort()
     for d in keys:
@@ -161,7 +164,11 @@ def handle_siteindex(link):
                         "%s</a> [%s]<br />"
                         ) % (link, h, h, domain[h])
         content += "</td></tr>"
-    content += "</table>"
+    content += """</table>
+
+    <p><a href="/services/hosts.geojson">GeoJSON webservice</a> provided the
+    data to this table in %.3f seconds, valid at %s.
+    """ % (j['query_time[secs]'], j['generation_time'])
     view = myview.MyView()
     view.vars['content'] = content
     sys.stdout.write(view.render('main.html'))
