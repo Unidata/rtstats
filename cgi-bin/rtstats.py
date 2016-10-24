@@ -194,6 +194,7 @@ def handle_volume_stats_plot(hostname, period):
                                                       ).sum()
     gdf.reset_index(inplace=True)
     pdf = gdf.pivot('valid', 'feedtype', 'nbytes')
+    pdf = pdf.fillna(0)
     floor = np.zeros(len(pdf.index))
     colors = plt.get_cmap('rainbow')(np.linspace(0, 1, len(pdf.columns)))
     for i, feedtype in enumerate(pdf.columns):
@@ -448,6 +449,7 @@ def plot_volume_long(feedtype, host, period, col='nbytes'):
     _ = plt.figure(figsize=(11, 7))
     ax = plt.axes([0.1, 0.1, 0.6, 0.8])
     pdf = df[['valid', 'path', col]].pivot('valid', 'path', col)
+    pdf = pdf.fillna(0)
     floor = np.zeros(len(pdf.index))
     colors = plt.get_cmap('rainbow')(np.linspace(0, 1, len(pdf.columns)))
     for i, path in enumerate(pdf.columns):
@@ -493,6 +495,7 @@ def plot_volume_or_prods(feedtype, host, col):
     _ = plt.figure(figsize=(11, 7))
     ax = plt.axes([0.1, 0.1, 0.6, 0.8])
     pdf = df[['valid', 'path', col]].pivot('valid', 'path', col)
+    pdf = pdf.fillna(0)
     floor = np.zeros(len(pdf.index))
     colors = plt.get_cmap('rainbow')(np.linspace(0, 1, len(pdf.columns)))
     for i, path in enumerate(pdf.columns):
