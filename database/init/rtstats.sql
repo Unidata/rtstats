@@ -190,7 +190,9 @@ CREATE INDEX ldm_rtstats_queue_arrival_idx
 	ON ldm_rtstats(queue_arrival);
 CREATE INDEX ldm_rtstats_entry_added_idx
     ON ldm_rtstats(entry_added);
-	
+CREATE INDEX ldm_rtstats_feedtype_path_id_idx
+	ON ldm_rtstats(feedtype_path_id);
+
 --------------------------------------------------------------------
 -- Storage of hourly aggregated stats
 --   + these are populated each hour via a cron job
