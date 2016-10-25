@@ -14,7 +14,8 @@
     AddHandler cgi-script .py
     Options +ExecCGI
     RewriteEngine On
-    RewriteRule ^idd.geojson(.*) idd.py$1 [QSA]
+    RewriteRule ^idd.geojson(.*) idd.py?service=geojson&$1 [QSA]
+    RewriteRule ^idd/(.*).json(.*) idd.py?service=$1$2 [QSA]
     RewriteRule ^hosts.geojson(.*) hosts.py$1 [QSA]
     RewriteRule ^host/(.*)/(.*).json(.*) host.py?hostname=$1&service=$2$3 [QSA]
     RewriteRule ^feedtype/(.*)/(.*).json(.*) feedtype.py?feedtype=$1&service=$2$3 [QSA]

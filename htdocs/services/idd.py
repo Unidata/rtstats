@@ -8,14 +8,14 @@ This service is cached for 3 minutes via memcached
 import memcache
 import cgi
 import sys
+import pytz
 import rtstats_util as util
+import json
+import datetime
 
 
 def run(feedtype):
     """Generate geojson for this feedtype"""
-    import json
-    import datetime
-
     pgconn = util.get_dbconn()
     cursor = pgconn.cursor()
     sts = datetime.datetime.utcnow()
@@ -73,18 +73,53 @@ def run(feedtype):
     return json.dumps(res)
 
 
+def stats():
+    """Overview stats"""
+    pgconn = util.get_dbconn()
+    cursor = pgconn.cursor()
+    sts = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+    if sts.minute < 20:  # Assume we have last hours stats by :20 after
+        sts -= datetime.timedelta(hours=1)
+    sts = sts.replace(minute=0, second=0, microsecond=0, tzinfo=pytz.utc)
+    cursor.execute("""
+        SELECT sum(nbytes)::bigint from ldm_rtstats_hourly
+        WHERE valid = %s
+    """, (sts,))
+    nbytes = cursor.fetchone()[0]
+    cursor.execute("""
+        select count(distinct node_host_id)::bigint from
+        ldm_rtstats_hourly h JOIN ldm_feedtype_paths p on
+        (h.feedtype_path_id = p.id) WHERE h.valid = %s
+    """, (sts,))
+    hosts = cursor.fetchone()[0]
+    res = dict()
+    res['generation_time'] = datetime.datetime.utcnow(
+        ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    res['data'] = [dict(valid=sts.strftime("%Y-%m-%dT%H:%M:00Z"),
+                        nbytes=nbytes,
+                        hosts=hosts)]
+
+    return json.dumps(res)
+
+
 def main():
     """Go Main Go"""
     sys.stdout.write("Content-type: application/vnd.geo+json\n\n")
     form = cgi.FieldStorage()
     feedtype = form.getfirst('feedtype', 'IDS|DDPLUS').upper()[:32]
     cb = form.getfirst('callback', None)
-    mckey = "/services/idd.geojson?feedtype=%s" % (feedtype,)
+    service = form.getfirst('service', 'geojson')
+    mckey = "/services/idd.py?service=%s&feedtype=%saa" % (service, feedtype)
     mc = memcache.Client(['memcached.local:11211'], debug=0)
     res = mc.get(mckey)
     if not res:
-        res = run(feedtype)
-        mc.set(mckey, res, 180)
+        if service == 'geojson':
+            res = run(feedtype)
+            expire = 180
+        else:
+            res = stats()
+            expire = 3600
+        mc.set(mckey, res, expire)
     if cb is None:
         sys.stdout.write(res)
     else:

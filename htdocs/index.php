@@ -7,6 +7,7 @@ $t->headextra = <<<EOF
 <script src="/vendor/openlayers/3.18.2/ol.js"></script>
 EOF;
 $t->content = <<<EOF
+<h3>Last Hour: <span id="nbytes">0 TiB</span> transferred by <span id="hosts">0 hosts</span></h3>
 <div id="detailfeature"></div>
 <br /><strong>View Feedtype:</strong> <select name="ftselect" id="feedtypeselect"></select>
 <div id="map" class="map"></div>

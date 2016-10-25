@@ -124,6 +124,19 @@ $(function() {
 			$("#feedtypeselect").val(feedtype);
 		}
 	});
+
+	// Populate the overview
+	$.ajax({
+		url: "/services/idd/recent.json",
+		dataType: 'json',
+		success: function(json){
+			console.log(json);
+			var data = json['data'][0];
+			nbytes = data['nbytes'] / (1024 * 1024 * 1024 * 1024);
+			$('#nbytes').html(nbytes.toFixed(3) +" TiB");
+			$('#hosts').html(data['hosts'] +" hosts");
+		}
+	});
 	loadTopology();
 
 }); // end of ready()
