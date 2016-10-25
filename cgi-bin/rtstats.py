@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """I should answer the following URIs
 
+    .../feedindex [list of feedtypes]
     .../siteindex
     .../iddstats_nc?EXP+server1.smn.gov.ar
     .../iddbinstats_nc?EXP+server1.smn.gov.ar  [latency histogram]
@@ -40,7 +41,7 @@ def get_domain(val):
     return ".".join(val.split(".")[1:][::-1])
 
 
-def handle_topoindex():
+def handle_topoindex(link='rtstats_feedtree'):
     sys.stdout.write("Content-type: text/html\n\n")
     req = requests.get("http://rtstats.local/services/feedtypes.json")
     if req.status_code != 200:
@@ -49,8 +50,8 @@ def handle_topoindex():
     j = req.json()
     listing = ""
     for feedtype in j['feedtypes']:
-        listing += ("<br /><a href=\"rtstats_feedtree?%s\">%s</a>\n"
-                    ) % (feedtype, feedtype)
+        listing += ("<br /><a href=\"%s?%s\">%s</a>\n"
+                    ) % (link, feedtype, feedtype)
     view = myview.MyView()
     view.vars['content'] = """
     <h2>RTSTATS Index by Sites Reporting Feeds</h2>
@@ -131,9 +132,12 @@ def handle_sitesummary(hostname):
     sys.stdout.write(view.render('main.html'))
 
 
-def handle_siteindex(link):
+def handle_siteindex(link, feedtype=None):
     sys.stdout.write("Content-type: text/html\n\n")
-    req = requests.get("http://rtstats.local/services/hosts.geojson")
+    URI = "/services/hosts.geojson"
+    if feedtype is not None:
+        URI += "?feedtype=%s" % (feedtype,)
+    req = requests.get("http://rtstats.local" + URI)
     if req.status_code != 200:
         sys.stdout.write("API Service Failure...")
         return
@@ -146,12 +150,12 @@ def handle_siteindex(link):
         d2 = domains.setdefault(d, dict())
         d2[host] = ldmversion
 
-    content = """
+    content = """ <h3>Sites Receiving %s Feedtype</h3>
     <table border="1" cellpadding="2" cellspacing="0">
     <thead>
         <tr><th>Domain</th><th>Hosts</th></tr>
     </thead>
-    """
+    """ % ('ANY' if feedtype is None else feedtype,)
     keys = domains.keys()
     keys.sort()
     for d in keys:
@@ -577,6 +581,11 @@ def main():
         handle_rtopology(tokens[0])
     elif uri.startswith('/cgi-bin/rtstats/topoindex?tree'):
         handle_topoindex()
+    elif uri.startswith('/cgi-bin/rtstats/rtstats_sitebyfeed'):
+        feedtype = os.environ.get('QUERY_STRING', '')[:256]
+        handle_siteindex('siteindex', feedtype)
+    elif uri.startswith('/cgi-bin/rtstats/feedindex'):
+        handle_topoindex('rtstats_sitebyfeed')
     else:
         # TODO: disable in production
         sys.stdout.write("Content-type: text/plain\n\n")
