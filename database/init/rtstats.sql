@@ -211,6 +211,8 @@ GRANT SELECT on ldm_rtstats_hourly to nobody;
 GRANT ALL on ldm_rtstats_hourly to ldm;
 CREATE INDEX ldm_rstats_hourly_idx
 	on ldm_rtstats_hourly(feedtype_path_id, valid);
+CREATE INDEX ldm_rstats_hourly_valid_idx
+	on ldm_rtstats_hourly(valid);
 
 ----------------------------------------------------------------------
 -- Storage of daily aggregated stats
@@ -230,3 +232,5 @@ GRANT SELECT on ldm_rtstats_daily to nobody;
 GRANT ALL on ldm_rtstats_daily to ldm;
 CREATE INDEX ldm_rstats_daily_idx
 	on ldm_rtstats_daily(feedtype_path_id, valid);
+CREATE INDEX ldm_rstats_daily_valid_idx
+	on ldm_rtstats_daily(valid);
