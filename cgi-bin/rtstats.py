@@ -433,10 +433,13 @@ def plot_volume_long(feedtype, host, period, col='nbytes'):
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
     service = 'hourly'
+    barwidth = 1/24.
     if period == '-b%2086400':
         service = 'daily'
+        barwidth = 1.
     elif period == '-b%20604800':
         service = 'weekly'
+        barwidth = 7.
     sys.stderr.write(repr(period))
     req = requests.get(("http://rtstats.local/services/host/%s/%s.json"
                         "?feedtype=%s") % (host, service, feedtype))
@@ -461,7 +464,7 @@ def plot_volume_long(feedtype, host, period, col='nbytes'):
         lbl = "%s\n-> %s" % (tokens[0], tokens[1])
         if tokens[0] == tokens[1]:
             lbl = "%s [SRC]" % (tokens[0],)
-        ax.bar(pdf.index.values, pdf[path].values, width=1/24.,
+        ax.bar(pdf.index.values, pdf[path].values, width=barwidth,
                bottom=floor, fc=colors[i], ec=colors[i],
                label=lbl, align='center')
         floor += pdf[path].values
