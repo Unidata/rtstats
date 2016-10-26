@@ -215,8 +215,10 @@ def handle_volume_stats_plot(hostname, period):
     floor = np.zeros(len(pdf.index))
     colors = plt.get_cmap('rainbow')(np.linspace(0, 1, len(pdf.columns)))
     for i, feedtype in enumerate(pdf.columns):
+        ec = colors[i] if period == 'hourly' else 'k'
         ax.bar(pdf.index.values, pdf[feedtype].values, width=1/24.,
-               bottom=floor, fc=colors[i], label=feedtype, align='center')
+               bottom=floor, fc=colors[i], ec=ec, label=feedtype,
+               align='center')
         floor += pdf[feedtype].values
 
     ax.legend(bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.,
