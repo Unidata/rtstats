@@ -130,7 +130,6 @@ $(function() {
 		url: "/services/idd/recent.json",
 		dataType: 'json',
 		success: function(json){
-			console.log(json);
 			var data = json['data'][0];
 			nbytes = data['nbytes'] / (1024 * 1024 * 1024 * 1024);
 			$('#nbytes').html(nbytes.toFixed(3) +" TiB");

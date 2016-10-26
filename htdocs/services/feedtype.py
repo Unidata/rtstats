@@ -9,6 +9,7 @@ import cgi
 import sys
 import rtstats_util as util
 import json
+import datetime
 
 
 def handle_topology(feedtype, reverse=False):
@@ -19,6 +20,7 @@ def handle_topology(feedtype, reverse=False):
     cursor = pgconn.cursor()
     # compute all upstreams for this feedtype
     upstreams = {}
+    sts = datetime.datetime.utcnow()
     cursor.execute("""
     WITH active as (
         select distinct id from
@@ -31,6 +33,7 @@ def handle_topology(feedtype, reverse=False):
     (select hostname from ldm_hostnames where id = p.node_host_id) as node
     from ldm_feedtype_paths p JOIN active a on (p.id = a.id)
     """, (feedtype,))
+    ets = datetime.datetime.utcnow()
     for row in cursor:
         if reverse:
             upstreams.setdefault(row[0], []).append(row[1])
@@ -38,6 +41,8 @@ def handle_topology(feedtype, reverse=False):
             upstreams.setdefault(row[1], []).append(row[0])
 
     res = dict()
+    res['query_time[secs]'] = (ets - sts).total_seconds()
+    res['generation_time'] = ets.strftime("%Y-%m-%dT%H:%M:%SZ")
     res['feedtype'] = feedtype
     res['upstreams' if not reverse else 'downstreams'] = upstreams
     return json.dumps(res)

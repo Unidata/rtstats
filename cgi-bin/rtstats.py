@@ -27,6 +27,14 @@ import rtstats_util as util
 RE_IP = re.compile('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$')
 
 
+def timing(j, wsuri):
+    return """
+    <p><a href="%s">JSON webservice</a> provided the
+    data to this table in %.3f seconds, valid at %s.
+    """ % (wsuri, j.get('query_time[secs]', -99), j.get('generation_time', '-')
+           )
+
+
 def get_domain(val):
     """Convert whatever this is, into a domain
 
@@ -67,17 +75,23 @@ set listed below, see the <a href="fixme">LDM Feedtypes</a> documentation.</p>
 
 def handle_site(hostname):
     sys.stdout.write("Content-type: text/html\n\n")
-    req = requests.get(("http://rtstats.local/services/host/%s/feedtypes.json"
-                        ) % (hostname, ))
+    URI = ("http://rtstats.local/services/host/%s/feedtypes.json"
+           ) % (hostname, )
+    req = requests.get(URI)
     if req.status_code != 200:
         sys.stdout.write("API Service Failure...")
         return
     j = req.json()
-    content = ("<table border=\"1\" cellpadding=\"2\" cellspacing=\"0\""
-               "><thead><tr><th>Feed Name</th>"
-               "<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>"
-               "<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>"
-               "</tr></thead>")
+    content = """
+    <h3>Available Realtime Stats for Hostname: %s</h3>
+    <table border="1" cellpadding="2" cellspacing="0">
+    <thead>
+        <tr><th>Feed Name</th>
+            <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+            <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+        </tr>
+    </thead>
+    """ % (hostname,)
     for feedtype in j['feedtypes']:
         content += ("<tr><th>%s</th>") % (feedtype,)
         content += """
@@ -95,6 +109,7 @@ def handle_site(hostname):
 <a href="%(p)s?%(h)s">Cumulative volume summary</a>
 <a href="%(p)s?%(h)s+GRAPH">Cumulative volume summary graph</a>
     """ % dict(h=hostname, p="/cgi-bin/rtstats/rtstats_summary_volume")
+    content += timing(j, URI)
     view = myview.MyView()
     view.vars['content'] = content
     sys.stdout.write(view.render('main.html'))
@@ -168,11 +183,9 @@ def handle_siteindex(link, feedtype=None):
                         "%s</a> [%s]<br />"
                         ) % (link, h, h, domain[h])
         content += "</td></tr>"
-    content += """</table>
+    content += "</table>"
+    content += timing(j, URI)
 
-    <p><a href="/services/hosts.geojson">GeoJSON webservice</a> provided the
-    data to this table in %.3f seconds, valid at %s.
-    """ % (j['query_time[secs]'], j['generation_time'])
     view = myview.MyView()
     view.vars['content'] = content
     sys.stdout.write(view.render('main.html'))
@@ -269,9 +282,9 @@ Feed                           Average             Maximum     Products
 
 def handle_topology(hostname, feedtype):
     sys.stdout.write("Content-type: text/html\n\n")
-    req = requests.get(("http://rtstats.local/services/feedtype/%s/"
-                        "topology.json"
-                        ) % (feedtype, ))
+    URI = ("http://rtstats.local/services/feedtype/%s/topology.json"
+           ) % (feedtype, )
+    req = requests.get(URI)
     if req.status_code != 200:
         sys.stdout.write("API Service Failure...")
         return
@@ -299,11 +312,19 @@ def handle_topology(hostname, feedtype):
             nodedict.pop(host)
         nodedict[host] = get_node(host, nodedict[hostname])
 
-    content = u"<pre>\n"
+    content = u"""
+    <h3>LDM Feedtype: %s Topology for Host: %s</h3>
+    <p>Click on the hostname for topology for that host
+    or the <i>view stats</i>
+    link for detailed statistics for the host.</p>
+    <pre>\n""" % (feedtype, hostname)
     for pre, _, node in RenderTree(nodedict[hostname]):
-        content += ("%s<a href=\"iddstats_topo_nc?%s+%s\">%s</a>\n"
-                    ) % (pre, feedtype, node.name, node.name)
+        content += ("%s<a href=\"iddstats_topo_nc?%s+%s\">%s</a> "
+                    "(<a href=\"siteindex?%s\">view stats</a>)\n"
+                    ) % (pre, feedtype, node.name, node.name, node.name)
     content += "</pre>\n"
+    content += timing(j, URI)
+
     view = myview.MyView()
     view.vars['content'] = content
     sys.stdout.write(view.render('main.html').encode('utf-8'))

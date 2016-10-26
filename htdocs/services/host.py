@@ -13,6 +13,7 @@ import pandas as pd
 import rtstats_util as util
 import json
 import collections
+import datetime
 
 
 def Tree():
@@ -237,12 +238,16 @@ def handle_feedtypes(hostname):
     """Generate geojson for this feedtype"""
     pgconn = util.get_dbconn()
     cursor = pgconn.cursor()
+    sts = datetime.datetime.utcnow()
     cursor.execute("""
     select distinct f.feedtype from ldm_feedtypes f JOIN ldm_feedtype_paths p
     on (f.id = p.feedtype_id) WHERE p.node_host_id = get_ldm_host_id(%s)
     ORDER by f.feedtype
     """, (hostname, ))
+    ets = datetime.datetime.utcnow()
     res = dict()
+    res['query_time[secs]'] = (ets - sts).total_seconds()
+    res['generation_time'] = ets.strftime("%Y-%m-%dT%H:%M:%SZ")
     res['hostname'] = hostname
     feedtypes = []
     for row in cursor:
