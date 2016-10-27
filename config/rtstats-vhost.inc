@@ -40,4 +40,5 @@
     RewriteRule ^rtstats/ /cgi-bin/rtstats.py [PT]
   </Directory>
   
-  
+  # http://enable-cors.org/server_apache.html
+  Header set Access-Control-Allow-Origin "*"
