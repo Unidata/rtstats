@@ -17,8 +17,9 @@ def ready(_, dbpool):
     protocol.dbpool = dbpool
     ldmbridge.LDMProductFactory(protocol)
 
-    www = server.Site(web.RootResource())
-    reactor.listenTCP(8005, www)
+    # unused at the moment
+    # www = server.Site(web.RootResource())
+    # reactor.listenTCP(8005, www)
 
 
 def load_dbtables(cursor):
