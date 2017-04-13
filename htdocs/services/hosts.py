@@ -5,18 +5,19 @@
 
 This service caches for 1 hour before refreshing.
 """
-import memcache
 import cgi
 import sys
+
+import memcache
+import rtstats_util as util
 
 
 def run(feedtype):
     """Generate geojson for this feedtype"""
-    import psycopg2
     import json
     import datetime
 
-    pgconn = psycopg2.connect(dbname='rtstats', user='nobody')
+    pgconn = util.get_dbconn()
     cursor = pgconn.cursor()
     sts = datetime.datetime.utcnow()
     flimiter = ''
@@ -74,6 +75,7 @@ def main():
         sys.stdout.write(res)
     else:
         sys.stdout.write("%s(%s)" % (cb, res))
+
 
 if __name__ == '__main__':
     main()
