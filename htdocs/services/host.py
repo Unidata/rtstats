@@ -6,17 +6,19 @@
     /services/host/<hostname>/topology.json
 
 """
-import memcache
 import cgi
 import sys
-import pandas as pd
-import rtstats_util as util
-import json
 import collections
 import datetime
+import json
+
+import memcache
+import pandas as pd
+import rtstats_util as util
 
 
 def Tree():
+    """Make me a tree"""
     return collections.defaultdict(Tree)
 
 
@@ -28,6 +30,7 @@ def handle_rtstats(hostname, feedtype):
     if feedtype != '':
         flimit = " and p.feedtype_id = get_ldm_feedtype_id('%s') " % (feedtype,
                                                                       )
+    sts = datetime.datetime.utcnow()
     cursor.execute("""
     select
     to_char(r.entry_added at time zone 'UTC', 'YYYY-MM-DDThh24:MI:SSZ'),
@@ -42,7 +45,9 @@ def handle_rtstats(hostname, feedtype):
     r.entry_added > now() - '36 hours'::interval """ + flimit + """
     ORDER by r.entry_added ASC
     """, (hostname, ))
+    utcnow = datetime.datetime.utcnow()
     res = dict()
+    res['query_time[secs]'] = (utcnow - sts).total_seconds()
     res['hostname'] = hostname
     res['columns'] = ['entry_added', 'feedtype_path_id', 'origin', 'relay',
                       'avg_latency', 'feedtype']
@@ -64,6 +69,7 @@ def handle_weekly(hostname, feedtype, since):
     if since is not None:
         tlimit = (" and h.valid >= '%s' "
                   ) % (pd.to_datetime(since).strftime("%Y-%m-%d"),)
+    sts = datetime.datetime.utcnow()
     cursor.execute("""
     WITH weekly as (
         SELECT
@@ -94,7 +100,9 @@ def handle_weekly(hostname, feedtype, since):
     (h.feedtype_path_id = p.id)
     ORDER by v ASC
     """, (hostname, ))
+    utcnow = datetime.datetime.utcnow()
     res = dict()
+    res['query_time[secs]'] = (utcnow - sts).total_seconds()
     res['hostname'] = hostname
     res['columns'] = ['valid', 'feedtype_path_id', 'origin', 'relay',
                       'min_latency', 'avg_latency', 'max_latency',
@@ -117,6 +125,7 @@ def handle_daily(hostname, feedtype, since):
     if since is not None:
         tlimit = (" and h.valid >= '%s' "
                   ) % (pd.to_datetime(since).strftime("%Y-%m-%d"),)
+    sts = datetime.datetime.utcnow()
     cursor.execute("""
     select
     to_char(valid, 'YYYY-MM-DD'),
@@ -135,7 +144,9 @@ def handle_daily(hostname, feedtype, since):
     """ + tlimit + """
     ORDER by h.valid ASC
     """, (hostname, ))
+    utcnow = datetime.datetime.utcnow()
     res = dict()
+    res['query_time[secs]'] = (utcnow - sts).total_seconds()
     res['hostname'] = hostname
     res['columns'] = ['valid', 'feedtype_path_id', 'origin', 'relay',
                       'min_latency', 'avg_latency', 'max_latency',
@@ -158,6 +169,7 @@ def handle_hourly(hostname, feedtype, since):
     if since is not None:
         tlimit = (" and h.valid >= '%s' "
                   ) % (pd.to_datetime(since).strftime("%Y-%m-%d %H:%M+00"),)
+    sts = datetime.datetime.utcnow()
     cursor.execute("""
     select
     to_char(valid at time zone 'UTC', 'YYYY-MM-DDThh24:MI:SSZ'),
@@ -176,7 +188,9 @@ def handle_hourly(hostname, feedtype, since):
     """ + tlimit + """
     ORDER by h.valid ASC
     """, (hostname, ))
+    utcnow = datetime.datetime.utcnow()
     res = dict()
+    res['query_time[secs]'] = (utcnow - sts).total_seconds()
     res['hostname'] = hostname
     res['columns'] = ['valid', 'feedtype_path_id', 'origin', 'relay',
                       'min_latency', 'avg_latency', 'max_latency',
@@ -195,6 +209,7 @@ def handle_topology(hostname, feedtype):
     cursor = pgconn.cursor()
     # compute all upstreams for this feedtype
     upstreams = {}
+    sts = datetime.datetime.utcnow()
     cursor.execute("""
     WITH active as (
         select distinct id from
@@ -207,6 +222,7 @@ def handle_topology(hostname, feedtype):
     (select hostname from ldm_hostnames where id = p.node_host_id) as node
     from ldm_feedtype_paths p JOIN active a on (p.id = a.id)
     """, (feedtype,))
+    utcnow = datetime.datetime.utcnow()
     for row in cursor:
         upstreams.setdefault(row[1], []).append(row[0])
 
@@ -229,6 +245,7 @@ def handle_topology(hostname, feedtype):
         #    print(",".join(path))
         depth += 1
     res = dict()
+    res['query_time[secs]'] = (utcnow - sts).total_seconds()
     res['hostname'] = hostname
     res['paths'] = paths
     return json.dumps(res)
@@ -287,6 +304,7 @@ def main():
         sys.stdout.write(res)
     else:
         sys.stdout.write("%s(%s)" % (cb, res))
+
 
 if __name__ == '__main__':
     main()
