@@ -12,7 +12,7 @@ GRANT ALL on ldm_versions to ldm;
 GRANT ALL on ldm_versions_id_seq to ldm;
 
 -- lookup or creation of ldm_versions
-CREATE OR REPLACE FUNCTION get_ldm_version_id(_version text,
+CREATE OR REPLACE FUNCTION get_or_set_ldm_version_id(_version text,
 	OUT ldm_version_id int) AS
 $func$
 BEGIN
@@ -38,6 +38,13 @@ END LOOP;
 END
 $func$ LANGUAGE plpgsql;
 
+-- The stable variant of above
+CREATE OR REPLACE FUNCTION get_ldm_version_id(text) RETURNS integer AS
+ 'SELECT id from ldm_versions where version = $1;'
+ LANGUAGE sql
+ IMMUTABLE
+ RETURNS NULL ON NULL INPUT;
+
 ---------------------------
 -- Storage of LDM feedtypes
 
@@ -50,7 +57,7 @@ GRANT ALL on ldm_feedtypes to ldm;
 GRANT ALL on ldm_feedtypes_id_seq to ldm;
 
 -- lookup or creation of ldm_feedtypes
-CREATE OR REPLACE FUNCTION get_ldm_feedtype_id(_feedtype text,
+CREATE OR REPLACE FUNCTION get_or_set_ldm_feedtype_id(_feedtype text,
 	OUT ldm_feedtype_id int) AS
 $func$
 BEGIN
@@ -76,6 +83,13 @@ END LOOP;
 END
 $func$ LANGUAGE plpgsql;
 
+-- The stable variant of above
+CREATE OR REPLACE FUNCTION get_ldm_feedtype_id(text) RETURNS integer AS
+ 'SELECT id from ldm_feedtypes where feedtype = $1;'
+ LANGUAGE sql
+ IMMUTABLE
+ RETURNS NULL ON NULL INPUT;
+
 ---------------------------------------
 -- Storage of hostnames reported by LDM
 --   Note: These may or may not be FQDNs, IPs or even valid
@@ -93,7 +107,7 @@ GRANT ALL on ldm_hostnames to ldm;
 GRANT ALL on ldm_hostnames_id_seq to ldm;
 
 -- lookup or creation of ldm_hostnames
-CREATE OR REPLACE FUNCTION get_ldm_host_id(_hostname text,
+CREATE OR REPLACE FUNCTION get_or_set_ldm_host_id(_hostname text,
 	OUT ldm_hostname_id int) AS
 $func$
 BEGIN
@@ -119,6 +133,13 @@ END LOOP;
 END
 $func$ LANGUAGE plpgsql;
 
+-- The stable variant of above
+CREATE OR REPLACE FUNCTION get_ldm_host_id(text) RETURNS integer AS
+ 'SELECT id from ldm_hostnames where hostname = $1;'
+ LANGUAGE sql
+ IMMUTABLE
+ RETURNS NULL ON NULL INPUT;
+
 --------------------------------
 -- Storage of LDM feedtype paths
 
@@ -137,7 +158,7 @@ GRANT ALL on ldm_feedtype_paths to ldm;
 GRANT ALL on ldm_feedtype_paths_id_seq to ldm;
 
 -- lookup or creation of ldm_feedtype_paths
-CREATE OR REPLACE FUNCTION get_ldm_feedtype_path_id(_feedtype int, _origin int,
+CREATE OR REPLACE FUNCTION get_or_set_ldm_feedtype_path_id(_feedtype int, _origin int,
     _relay int, _node int, OUT feedtype_path_id int) AS
 $func$
 BEGIN
@@ -168,6 +189,15 @@ END LOOP;
 
 END
 $func$ LANGUAGE plpgsql;
+
+-- The stable variant of above
+CREATE OR REPLACE FUNCTION get_ldm_feedtype_path_id(int, int, int, int)
+ RETURNS integer AS
+ 'SELECT id from ldm_feedtype_paths where feedtype_id = $1 and origin_host_id = $2
+  and relay_host_id = $3 and node_host_id = $4;'
+ LANGUAGE sql
+ IMMUTABLE
+ RETURNS NULL ON NULL INPUT;
 
 --------------------------------
 -- Storage of actual rtstats!
