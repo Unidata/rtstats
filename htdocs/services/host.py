@@ -73,7 +73,7 @@ def handle_weekly(hostname, feedtype, since):
     cursor.execute("""
     WITH weekly as (
         SELECT
-        extract(year from valid) as yr, extract(week from valid) as week,
+        extract(isoyear from valid) as yr, extract(week from valid) as week,
         feedtype_path_id,
         min(min_latency) as min_latency, avg(avg_latency) as avg_latency,
         max(max_latency) as max_latency, sum(nprods) as nprods,
