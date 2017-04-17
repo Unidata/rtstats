@@ -17,6 +17,13 @@ $t->content = <<<EOF
 <h3>Last Hour: <span id="nbytes">0 TiB</span> transferred by <span id="hosts">0 hosts</span></h3>
 <div id="detailfeature"></div>
 <br /><strong>View Feedtype:</strong> <select name="ftselect" id="feedtypeselect"></select>
+<br /><strong>Latency (minutes) Color Key:
+<span style="color: #00ce00;">&lt; 1</span> &nbsp;
+<span style="color: #38ff00;">1 to 5</span> &nbsp;
+<span style="color: #0091ff;">5 to 30</span> &nbsp;
+<span style="color: #00508b;">30 to 60</span> &nbsp;
+<span style="color: #ff0000;">&gt;= 60</span> &nbsp;
+
 <div id="map" class="map"></div>
 <p><span id="diagnostics"></span></p>
 EOF;

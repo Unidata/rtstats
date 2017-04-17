@@ -1,13 +1,14 @@
 var geojson;
 var feedtype = "IDS|DDPLUS";
-var levels = [60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 1, -9999999];
-var colors = ['#ff0000', '#ff112c', '#ffaab7', '#97008a', '#9c2bef',
-              '#8e67cd', '#00508b', '#0091ff', '#00b3ee', '#00f0ee',
-              '#eeed00', '#38ff00', '#00ce00', '#00ce00']
+var levels = [60, 30, 5, 1, -9999999];
+var colors = ['#ff0000', '#00508b', '#0091ff', '#38ff00', '#00ce00'];
 
 var detailFeature = function(feature){
-	$('#detailfeature').html("<strong>" + feature.get("relay") +"</strong>" +
-			" to <strong>" + feature.get('node') +"</strong> for LDM Feedtype: " + feedtype +
+	$('#detailfeature').html("<strong><a href=\"/cgi-bin/rtstats/siteindex?" +
+			feature.get('relay') +"\">" + feature.get("relay") +"</a></strong>" +
+			" to <strong><a href=\"/cgi-bin/rtstats/siteindex?" +
+			feature.get('node') + "\">" + feature.get('node') +"</a></strong>" +
+			" for LDM Feedtype: " + feedtype +
 			" has latency "+ feature.get('latency').toFixed(3) +"s");
 }
 
@@ -36,7 +37,8 @@ var styleFunction = function(feature) {
 	var latency = feature.get("latency");
 	var color = colors[colors.length - 1];
 	for (var i=0; i<(colors.length-1); i++){
-		if (latency > levels[i]){
+		// Latency in feed is expressed in seconds, here we compare with mins
+		if ((latency / 60.) > levels[i]){
 			color = colors[i];
 			break;
 		}
