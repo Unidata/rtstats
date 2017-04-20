@@ -5,13 +5,14 @@
 
 This service is cached for 3 minutes via memcached
 """
-import memcache
 import cgi
 import sys
-import pytz
-import rtstats_util as util
 import json
 import datetime
+
+import memcache
+import pytz
+import rtstats_util as util
 
 
 def run(feedtype):
@@ -124,6 +125,7 @@ def main():
         sys.stdout.write(res)
     else:
         sys.stdout.write("%s(%s)" % (cb, res))
+
 
 if __name__ == '__main__':
     main()

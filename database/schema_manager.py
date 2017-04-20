@@ -4,11 +4,11 @@
 
      python schema_manager.py
 """
-
-import psycopg2
 import os
 import sys
 import json
+
+import psycopg2
 
 CONFIG = json.load(open("../config/settings.json"))
 TABLE = "schema_manager_version"
@@ -72,6 +72,7 @@ def main():
     os.chdir('upgrade')
     for dbname in os.listdir('.'):
         run_db(dbname)
+
 
 if __name__ == '__main__':
     # main

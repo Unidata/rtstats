@@ -16,15 +16,17 @@
 """
 import os
 import sys
-import requests
-import numpy as np
 import re
 import datetime
+
+import requests
+import numpy as np
 import pandas as pd
 import myview
 from anytree import Node, RenderTree
 import rtstats_util as util
-RE_IP = re.compile('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$')
+
+RE_IP = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
 
 
 def timing(j, wsuri):
@@ -357,6 +359,7 @@ def handle_rtopology(feedtype):
         nodedict[hostname] = Node(hostname)
 
         def get_node(host, parent):
+            """Recursive method to find tree"""
             if host in nodedict:
                 return nodedict[host]
             # we add the node
@@ -476,7 +479,7 @@ def plot_volume_long(feedtype, host, period, col='nbytes'):
     df['valid'] = pd.to_datetime(df['valid'])
     df['path'] = df['origin'] + "_v_" + df['relay']
     df['nbytes'] /= (1024.*1024.*1024.)  # convert to GiB
-    _ = plt.figure(figsize=(11, 7))
+    fig = plt.figure(figsize=(11, 7))
     ax = plt.axes([0.1, 0.1, 0.6, 0.8])
     pdf = df[['valid', 'path', col]].pivot('valid', 'path', col)
     pdf = pdf.fillna(0)
@@ -500,6 +503,8 @@ def plot_volume_long(feedtype, host, period, col='nbytes'):
                        df['valid'].min().strftime("%Y%m%d/%H%M"),
                        df['valid'].max().strftime("%Y%m%d/%H%M")))
     ax.grid(True)
+    fig.text(0.01, 0.01, "Backend JSON timing: %.2fs" % (j['query_time[secs]'],
+                                                         ))
     sys.stdout.write("Content-type: image/png\n\n")
     plt.savefig(sys.stdout)
 
@@ -550,6 +555,7 @@ def plot_volume_or_prods(feedtype, host, col):
 
 
 def main():
+    """Main workflow"""
     uri = os.environ.get('REQUEST_URI', '')
     if uri.startswith('/cgi-bin/rtstats/siteindex'):
         host = os.environ.get('QUERY_STRING', '')[:256]
@@ -612,11 +618,7 @@ def main():
         handle_siteindex('siteindex', feedtype)
     elif uri.startswith('/cgi-bin/rtstats/feedindex'):
         handle_topoindex('rtstats_sitebyfeed')
-    else:
-        # TODO: disable in production
-        sys.stdout.write("Content-type: text/plain\n\n")
-        for k, v in os.environ.iteritems():
-            sys.stdout.write("%s -> %s\n" % (k, v))
+
 
 if __name__ == '__main__':
     main()

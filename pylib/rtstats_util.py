@@ -1,8 +1,9 @@
 """Collection of Utilities for rtstats"""
 
-import psycopg2
 import json
 import os
+
+import psycopg2
 import matplotlib.dates as mdates
 from matplotlib.ticker import FuncFormatter
 

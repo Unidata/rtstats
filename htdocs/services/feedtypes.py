@@ -4,9 +4,10 @@
     /services/feedtypes.json
 
 """
-import memcache
 import cgi
 import sys
+
+import memcache
 import rtstats_util as util
 
 
@@ -40,6 +41,7 @@ def main():
         sys.stdout.write(res)
     else:
         sys.stdout.write("%s(%s)" % (cb, res))
+
 
 if __name__ == '__main__':
     main()

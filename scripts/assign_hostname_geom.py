@@ -1,9 +1,13 @@
 """Use GeoIP and assign lat/lon to hostnames"""
-import GeoIP
+from __future__ import print_function
 import os
 import json
-import psycopg2
 import re
+import socket
+
+import psycopg2
+import pygeoip
+
 RE_IP = re.compile('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$')
 
 
@@ -24,7 +28,7 @@ def main():
     if os.path.isfile("/tmp/GeoLiteCity.dat"):
         fn = "/tmp/GeoLiteCity.dat"
         print("assign_hostname_geom.py found local db %s" % (fn,))
-    gi = GeoIP.open(fn, GeoIP.GEOIP_STANDARD)
+    gi = pygeoip.GeoIP(fn)
 
     cursor.execute("""
         SELECT id, hostname from ldm_hostnames
@@ -34,7 +38,10 @@ def main():
         if RE_IP.match(row[1]):
             gir = gi.record_by_addr(row[1])
         else:
-            gir = gi.record_by_name(row[1])
+            try:
+                gir = gi.record_by_name(row[1])
+            except socket.gaierror:
+                gir = None
         if gir is not None:
             cursor2.execute("""UPDATE ldm_hostnames
             SET geom = 'SRID=4326;POINT(%s %s)' where id = %s
@@ -47,6 +54,7 @@ def main():
     cursor2.close()
     pgconn.commit()
     pgconn.close()
+
 
 if __name__ == '__main__':
     main()

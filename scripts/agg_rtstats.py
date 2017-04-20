@@ -1,10 +1,12 @@
 """Aggregate the hourly rtstats"""
-import rtstats_util as util
 import datetime
+
+import rtstats_util as util
 import pytz
 
 
 def daily(pgconn):
+    """Daily workflow"""
     cursor = pgconn.cursor()
     # we run for the day for the previous hour
     utcnow = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
@@ -28,6 +30,7 @@ def daily(pgconn):
 
 
 def hourly(pgconn):
+    """Hourly Workflow"""
     cursor = pgconn.cursor()
     # figure out what our most recent stats are for
     cursor.execute("""SELECT max(valid) from ldm_rtstats_hourly""")
@@ -112,10 +115,12 @@ def cleanup(pgconn):
 
 
 def main():
+    """Our workflow"""
     pgconn = util.get_dbconn(rw=True)
     hourly(pgconn)
     daily(pgconn)
     cleanup(pgconn)
+
 
 if __name__ == '__main__':
     main()

@@ -2,13 +2,14 @@
 
 
 """
+import json
+import os
+
 from twisted.internet import reactor
 from twisted.enterprise import adbapi
 from twisted.web import server
 from applib import web
 from applib import ldmbridge
-import json
-import os
 
 
 def ready(_, dbpool):
