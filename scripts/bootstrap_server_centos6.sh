@@ -49,6 +49,7 @@ sudo -u postgres sh bootstrap.sh
 /opt/miniconda2/bin/python schema_manager.py
 
 # TODO: set /opt/miniconda2/bin in front of LDM's PATH
+# TODO: set /opt/rtstats/pylib in PYTHON_PATH for LDM
 sudo -u ldm ln -s /opt/rtstats/ldm/pqact.conf ~ldm/etc/pqact-rtstats.conf
 # TODO: add "pqact etc/pqact-rtstats.conf" to LDM's ldmd.conf
 sudo -u ldm crontab /opt/rtstats/scripts/ldm.crontab

@@ -1,7 +1,8 @@
-PYTHONPATH=/opt/rtstats/pylib
 CRON_TZ=UTC
+PATH=/opt/miniconda2/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PYTHONPATH=/opt/rtstats/pylib
 
-@reboot source /home/ldm/.bashrc; ~/bin/ldmadmin stop; ~/bin/ldmadmin start
+@reboot ~/bin/ldmadmin stop; ~/bin/ldmadmin start
 
 10 * * * * cd /opt/rtstats/scripts; python assign_hostname_geom.py
 
