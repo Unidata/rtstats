@@ -4,12 +4,14 @@
 """
 import json
 import os
+import datetime
 
 from twisted.internet import reactor
 from twisted.enterprise import adbapi
-from twisted.web import server
-from applib import web
 from applib import ldmbridge
+
+# This is a hack that prevents a strange exception with datetime and threading
+datetime.datetime.strptime("2017", '%Y')
 
 
 def ready(_, dbpool):
@@ -17,10 +19,6 @@ def ready(_, dbpool):
     protocol = ldmbridge.RTStatsIngestor()
     protocol.dbpool = dbpool
     ldmbridge.LDMProductFactory(protocol)
-
-    # unused at the moment
-    # www = server.Site(web.RootResource())
-    # reactor.listenTCP(8005, www)
 
 
 def load_dbtables(cursor):
