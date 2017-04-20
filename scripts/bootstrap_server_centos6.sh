@@ -28,8 +28,6 @@ geoipupdate
 /opt/miniconda2/bin/conda install -y psycopg2 pygeoip matplotlib twisted python-memcached \
 pandas requests service_identity
 
-echo "127.0.0.1 rtstats.local" >> /etc/hosts
-
 cd /etc/httpd/conf.d
 cp -f /opt/rtstats/config/rtstats-vhost.conf .
 ln -s /opt/rtstats/config/rtstats-vhost.inc

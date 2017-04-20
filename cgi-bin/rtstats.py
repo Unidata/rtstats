@@ -53,7 +53,7 @@ def get_domain(val):
 
 def handle_topoindex(link='rtstats_feedtree'):
     sys.stdout.write("Content-type: text/html\n\n")
-    req = requests.get("http://rtstats.local/services/feedtypes.json")
+    req = requests.get("http://rtstats/services/feedtypes.json")
     if req.status_code != 200:
         sys.stdout.write("API Service Failure...")
         return
@@ -77,7 +77,7 @@ set listed below, see the <a href="fixme">LDM Feedtypes</a> documentation.</p>
 
 def handle_site(hostname):
     sys.stdout.write("Content-type: text/html\n\n")
-    URI = ("http://rtstats.local/services/host/%s/feedtypes.json"
+    URI = ("http://rtstatsl/services/host/%s/feedtypes.json"
            ) % (hostname, )
     req = requests.get(URI)
     if req.status_code != 200:
@@ -119,7 +119,7 @@ def handle_site(hostname):
 
 def handle_sitesummary(hostname):
     sys.stdout.write("Content-type: text/html\n\n")
-    req = requests.get(("http://rtstats.local/services/host/%s/feedtypes.json"
+    req = requests.get(("http://rtstats/services/host/%s/feedtypes.json"
                         ) % (hostname, ))
     if req.status_code != 200:
         sys.stdout.write("API Service Failure...")
@@ -154,7 +154,7 @@ def handle_siteindex(link, feedtype=None):
     URI = "/services/hosts.geojson"
     if feedtype is not None:
         URI += "?feedtype=%s" % (feedtype,)
-    req = requests.get("http://rtstats.local" + URI)
+    req = requests.get("http://rtstats" + URI)
     if req.status_code != 200:
         sys.stdout.write("API Service Failure...")
         return
@@ -197,7 +197,7 @@ def handle_volume_stats_plot(hostname, period):
     import matplotlib
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
-    req = requests.get(("http://rtstats.local/services/host/%s/"
+    req = requests.get(("http://rtstats/services/host/%s/"
                         "%s.json"
                         ) % (hostname, period))
     if req.status_code != 200:
@@ -238,7 +238,7 @@ def handle_volume_stats_plot(hostname, period):
 
 def handle_volume_stats(hostname):
     sys.stdout.write("Content-type: text/html\n\n")
-    req = requests.get(("http://rtstats.local/services/host/%s/"
+    req = requests.get(("http://rtstats/services/host/%s/"
                         "hourly.json"
                         ) % (hostname, ))
     if req.status_code != 200:
@@ -286,7 +286,7 @@ Feed                           Average             Maximum     Products
 
 def handle_topology(hostname, feedtype):
     sys.stdout.write("Content-type: text/html\n\n")
-    URI = ("http://rtstats.local/services/feedtype/%s/topology.json"
+    URI = ("http://rtstats/services/feedtype/%s/topology.json"
            ) % (feedtype, )
     req = requests.get(URI)
     if req.status_code != 200:
@@ -336,7 +336,7 @@ def handle_topology(hostname, feedtype):
 
 def handle_rtopology(feedtype):
     sys.stdout.write("Content-type: text/html\n\n")
-    req = requests.get(("http://rtstats.local/services/feedtype/%s/"
+    req = requests.get(("http://rtstats/services/feedtype/%s/"
                         "rtopology.json"
                         ) % (feedtype, ))
     if req.status_code != 200:
@@ -387,7 +387,7 @@ def plot_latency(feedtype, host, logopt):
     import matplotlib
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
-    req = requests.get(("http://rtstats.local/services/host/%s/rtstats.json"
+    req = requests.get(("http://rtstats/services/host/%s/rtstats.json"
                         ) % (host, ))
     if req.status_code != 200:
         sys.stdout.write("Content-type: text/plain\n\n")
@@ -424,7 +424,7 @@ def plot_latency_histogram(feedtype, host):
     import matplotlib
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
-    req = requests.get(("http://rtstats.local/services/host/%s/rtstats.json"
+    req = requests.get(("http://rtstats/services/host/%s/rtstats.json"
                         "?feedtype=%s") % (host, feedtype))
     if req.status_code != 200:
         sys.stdout.write("Content-type: text/plain\n\n")
@@ -467,7 +467,7 @@ def plot_volume_long(feedtype, host, period, col='nbytes'):
         service = 'weekly'
         barwidth = 7.
     sys.stderr.write(repr(period))
-    req = requests.get(("http://rtstats.local/services/host/%s/%s.json"
+    req = requests.get(("http://rtstats/services/host/%s/%s.json"
                         "?feedtype=%s") % (host, service, feedtype))
     if req.status_code != 200:
         sys.stdout.write("Content-type: text/plain\n\n")
@@ -515,7 +515,7 @@ def plot_volume_or_prods(feedtype, host, col):
     import matplotlib.pyplot as plt
     utcnow = datetime.datetime.utcnow() - datetime.timedelta(hours=36)
     since = utcnow.strftime("%Y-%m-%dT%H:%M:%SZ")
-    req = requests.get(("http://rtstats.local/services/host/%s/hourly.json"
+    req = requests.get(("http://rtstats/services/host/%s/hourly.json"
                         "?feedtype=%s&since=%s") % (host, feedtype, since))
     if req.status_code != 200:
         sys.stdout.write("Content-type: text/plain\n\n")
