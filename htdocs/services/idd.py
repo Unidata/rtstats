@@ -111,7 +111,7 @@ def main():
     cb = form.getfirst('callback', None)
     service = form.getfirst('service', 'geojson')
     mckey = "/services/idd.py?service=%s&feedtype=%saa" % (service, feedtype)
-    mc = memcache.Client(['memcached.local:11211'], debug=0)
+    mc = memcache.Client(['localhost:11211'], debug=0)
     res = mc.get(mckey)
     if not res:
         if service == 'geojson':

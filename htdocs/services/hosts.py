@@ -66,7 +66,7 @@ def main():
     cb = form.getfirst('callback', None)
     feedtype = form.getfirst('feedtype', None)
     mckey = "/services/hosts.geojson?feedtype=%s" % (feedtype,)
-    mc = memcache.Client(['memcached.local:11211'], debug=0)
+    mc = memcache.Client(['localhost:11211'], debug=0)
     res = mc.get(mckey)
     if not res:
         res = run(feedtype)

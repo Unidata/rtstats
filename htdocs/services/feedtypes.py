@@ -32,7 +32,7 @@ def main():
     form = cgi.FieldStorage()
     cb = form.getfirst('callback', None)
     mckey = "/services/feedtypes.json"
-    mc = memcache.Client(['memcached.local:11211'], debug=0)
+    mc = memcache.Client(['localhost:11211'], debug=0)
     res = mc.get(mckey)
     if not res:
         res = run()

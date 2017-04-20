@@ -56,7 +56,7 @@ def main():
     feedtype = form.getfirst('feedtype', '')
     service = form.getfirst('service', '')
     mckey = "/services/feedtype/%s/%s.json" % (feedtype, service)
-    mc = memcache.Client(['memcached.local:11211'], debug=0)
+    mc = memcache.Client(['localhost:11211'], debug=0)
     res = mc.get(mckey)
     if not res:
         if service == 'topology':

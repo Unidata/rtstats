@@ -284,7 +284,7 @@ def main():
     since = form.getfirst('since')
     mckey = "/services/host/%s/%s.json?feedtype=%s" % (hostname, service,
                                                        feedtype)
-    mc = memcache.Client(['memcached.local:11211'], debug=0)
+    mc = memcache.Client(['localhost:11211'], debug=0)
     res = mc.get(mckey)
     if not res:
         if service == 'feedtypes':
