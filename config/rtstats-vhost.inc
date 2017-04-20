@@ -1,5 +1,3 @@
-  ServerName rtstats.agron.iastate.edu
-  ServerAlias rtstats.local
 
   # allow CGI scripts to have pylib in their search path
   SetEnv PYTHONPATH "/opt/rtstats/pylib"

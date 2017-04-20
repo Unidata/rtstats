@@ -8,6 +8,7 @@ cd /opt
 git clone https://github.com/akrherz/rtstats.git
 cd rtstats/config
 cp -f settings.json-in settings.json
+chown -R ldm:ldm /opt/rtstats
 
 cd
 wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh
@@ -18,21 +19,24 @@ rpm -ivh https://download.postgresql.org/pub/repos/yum/9.6/redhat/rhel-6-x86_64/
 
 yum -y install postgresql96-server httpd php mod_ssl \
 libxml2-devel gcc-c++ byacc make perl bc lftp \
-postgis2_96 memcached
+postgis2_96 memcached GeoIP GeoIP-update
+geoipupdate
 
 # anytree is not provided by anaconda at this time, so we pip it
 /opt/miniconda2/bin/pip install anytree
 /opt/miniconda2/bin/conda config --add channels conda-forge
-/opt/miniconda2/bin/conda install -y psycopg2 pygeoip matplotlib twisted python-memcached
+/opt/miniconda2/bin/conda install -y psycopg2 pygeoip matplotlib twisted python-memcached \
+pandas requests service_identity
 
 echo "127.0.0.1 rtstats.local" >> /etc/hosts
 
 cd /etc/httpd/conf.d
 cp -f /opt/rtstats/config/rtstats-vhost.conf .
-cp -f /opt/rtstats/config/rtstats-vhost.inc .
+ln -s /opt/rtstats/config/rtstats-vhost.inc
 
 # TODO resolve letsencrypt certs used by rtstats
 
+echo "PATH=/opt/miniconda2/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" >> /etc/sysconfig/httpd
 chkconfig httpd on
 # This fails due to the TODO above with letsencrypt
 service httpd start
@@ -47,3 +51,5 @@ sudo -u postgres sh bootstrap.sh
 # TODO: set /opt/miniconda2/bin in front of LDM's PATH
 # TODO: add "pqact /opt/rtstats/ldm/pqact.conf" to LDM's ldmd.conf
 sudo -u ldm crontab /opt/rtstats/scripts/ldm.crontab
+
+# TODO: allow port 80 and 443 traffic
