@@ -77,7 +77,7 @@ set listed below, see the <a href="fixme">LDM Feedtypes</a> documentation.</p>
 
 def handle_site(hostname):
     sys.stdout.write("Content-type: text/html\n\n")
-    URI = ("http://rtstatstestl/services/host/%s/feedtypes.json"
+    URI = ("http://rtstatstest/services/host/%s/feedtypes.json"
            ) % (hostname, )
     req = requests.get(URI)
     if req.status_code != 200:
