@@ -2,6 +2,7 @@
 
 import json
 import os
+os.environ['MPLCONFIGDIR'] = "/tmp"  # hack
 
 import psycopg2
 import matplotlib.dates as mdates

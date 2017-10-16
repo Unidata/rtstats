@@ -15,6 +15,7 @@
     .../rtstats_summary_volume1?10.100.69.110+GRAPH [volume summary]
 """
 import os
+os.environ['MPLCONFIGDIR'] = "/tmp"  # hack
 import sys
 import re
 import datetime
