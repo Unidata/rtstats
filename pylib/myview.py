@@ -13,6 +13,6 @@ class MyView(object):
         if not os.path.isfile(fn):
             raise Exception("template %s not found!" % (fn,))
         tpl = open(fn).read()
-        for key, val in self.vars.iteritems():
+        for key, val in self.vars.items():
             tpl = tpl.replace("<!--%s-->" % (key,), val)
         return tpl
