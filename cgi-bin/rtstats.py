@@ -255,7 +255,7 @@ def handle_volume_stats(hostname):
         ascending=False)
     total = float(feedtypetots.sum())
     listing = ""
-    for feedtype, nbytes in feedtypetots.iteritems():
+    for feedtype, nbytes in feedtypetots.items():
         fdf = df[df['feedtype'] == feedtype]
         avgbyteshr = fdf[['valid', 'nbytes']].groupby('valid').sum(
             ).mean()['nbytes']
@@ -351,7 +351,7 @@ def handle_rtopology(feedtype):
         return
     downstreams = j['downstreams']
     content = u"<pre>\n"
-    for hostname, ar in downstreams.iteritems():
+    for hostname, ar in downstreams.items():
         if len(ar) == 0 or (len(ar) == 1 and ar[0] == hostname):
             content += ("<a href=\"iddstats_topo_nc?%s+%s\">%s</a>\n"
                         ) % (feedtype, hostname, hostname)
