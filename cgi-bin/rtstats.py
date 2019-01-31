@@ -16,6 +16,7 @@
 """
 import os
 os.environ['MPLCONFIGDIR'] = "/tmp"  # hack
+import cgi
 import sys
 import re
 import datetime
@@ -558,64 +559,66 @@ def plot_volume_or_prods(feedtype, host, col):
 def main():
     """Main workflow"""
     uri = os.environ.get('REQUEST_URI', '')
+    # prevent XSS
+    qs = cgi.escape(os.environ.get('QUERY_STRING', ''))
     if uri.startswith('/cgi-bin/rtstats/siteindex'):
-        host = os.environ.get('QUERY_STRING', '')[:256]
+        host = qs[:256]
         if host == '':
             handle_siteindex('siteindex')
         else:
             handle_site(host)
     elif uri.startswith('/cgi-bin/rtstats/sitesummaryindex'):
-        host = os.environ.get('QUERY_STRING', '')[:256]
+        host = qs[:256]
         if host == '':
             handle_siteindex('sitesummaryindex')
         else:
             handle_sitesummary(host)
     elif uri.startswith('/cgi-bin/rtstats/iddstats_nc'):
-        tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
+        tokens = qs[:256].split("+")
         if len(tokens) == 1:
             tokens = ['IDS|DDPLUS', tokens[0], '']
         elif len(tokens) == 2:
             tokens = [tokens[0], tokens[1], '']
         plot_latency(*tokens)
     elif uri.startswith('/cgi-bin/rtstats/iddbinstats_nc'):
-        tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
+        tokens = qs[:256].split("+")
         if len(tokens) == 1:
             tokens = ['IDS|DDPLUS', tokens[0]]
         plot_latency_histogram(*tokens)
     elif uri.startswith('/cgi-bin/rtstats/iddstats_vol_nc1'):
-        tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
+        tokens = qs[:256].split("+")
         if len(tokens) == 2:
             tokens = [tokens[0], tokens[1], None]
         plot_volume_long(tokens[0], tokens[1], tokens[2])
     elif (uri.startswith('/cgi-bin/rtstats/iddstats_vol_nc') or
             uri.startswith('/cgi-bin/rtstats/iddstats_num_nc')):
         col = "nbytes" if uri.find('_vol_nc') > -1 else 'nprods'
-        tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
+        tokens = qs[:256].split("+")
         if len(tokens) == 1:
             tokens = ['IDS|DDPLUS', tokens[0]]
         plot_volume_or_prods(tokens[0], tokens[1], col)
     elif uri.startswith('/cgi-bin/rtstats/iddstats_topo_nc'):
-        tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
+        tokens = qs[:256].split("+")
         handle_topology(tokens[1], tokens[0])
     elif uri.startswith('/cgi-bin/rtstats/rtstats_summary_volume1'):
-        tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
+        tokens = qs[:256].split("+")
         if len(tokens) == 1:
             handle_volume_stats(tokens[0])
         else:
             handle_volume_stats_plot(tokens[0], "daily")
     elif uri.startswith('/cgi-bin/rtstats/rtstats_summary_volume'):
-        tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
+        tokens = qs[:256].split("+")
         if len(tokens) == 1:
             handle_volume_stats(tokens[0])
         else:
             handle_volume_stats_plot(tokens[0], "hourly")
     elif uri.startswith('/cgi-bin/rtstats/rtstats_feedtree'):
-        tokens = os.environ.get('QUERY_STRING', '')[:256].split("+")
+        tokens = qs[:256].split("+")
         handle_rtopology(tokens[0])
     elif uri.startswith('/cgi-bin/rtstats/topoindex?tree'):
         handle_topoindex()
     elif uri.startswith('/cgi-bin/rtstats/rtstats_sitebyfeed'):
-        feedtype = os.environ.get('QUERY_STRING', '')[:256]
+        feedtype = qs[:256]
         handle_siteindex('siteindex', feedtype)
     elif uri.startswith('/cgi-bin/rtstats/feedindex'):
         handle_topoindex('rtstats_sitebyfeed')
