@@ -1,3 +1,4 @@
 matplotlib-base
 pandas
+psycopg2
 twisted
