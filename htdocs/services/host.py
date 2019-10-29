@@ -6,14 +6,13 @@
     /services/host/<hostname>/topology.json
 
 """
-import cgi
-import sys
 import collections
 import datetime
 import json
 
 import memcache
 import pandas as pd
+from paste.request import parse_formvars
 import rtstats_util as util
 
 
@@ -26,12 +25,14 @@ def handle_rtstats(hostname, feedtype):
     """Emit JSON for rtstats for this host"""
     pgconn = util.get_dbconn()
     cursor = pgconn.cursor()
-    flimit = ''
-    if feedtype != '':
-        flimit = " and p.feedtype_id = get_ldm_feedtype_id('%s') " % (feedtype,
-                                                                      )
+    flimit = ""
+    if feedtype != "":
+        flimit = " and p.feedtype_id = get_ldm_feedtype_id('%s') " % (
+            feedtype,
+        )
     sts = datetime.datetime.utcnow()
-    cursor.execute("""
+    cursor.execute(
+        """
     select
     to_char(r.entry_added at time zone 'UTC', 'YYYY-MM-DDThh24:MI:SSZ'),
     r.feedtype_path_id,
@@ -42,18 +43,28 @@ def handle_rtstats(hostname, feedtype):
     from ldm_rtstats r JOIN ldm_feedtype_paths p on
     (r.feedtype_path_id = p.id) WHERE
     p.node_host_id = get_ldm_host_id(%s) and
-    r.entry_added > now() - '36 hours'::interval """ + flimit + """
+    r.entry_added > now() - '36 hours'::interval """
+        + flimit
+        + """
     ORDER by r.entry_added ASC
-    """, (hostname, ))
+    """,
+        (hostname,),
+    )
     utcnow = datetime.datetime.utcnow()
     res = dict()
-    res['query_time[secs]'] = (utcnow - sts).total_seconds()
-    res['hostname'] = hostname
-    res['columns'] = ['entry_added', 'feedtype_path_id', 'origin', 'relay',
-                      'avg_latency', 'feedtype']
-    res['data'] = []
+    res["query_time[secs]"] = (utcnow - sts).total_seconds()
+    res["hostname"] = hostname
+    res["columns"] = [
+        "entry_added",
+        "feedtype_path_id",
+        "origin",
+        "relay",
+        "avg_latency",
+        "feedtype",
+    ]
+    res["data"] = []
     for row in cursor:
-        res['data'].append(row)
+        res["data"].append(row)
     return json.dumps(res)
 
 
@@ -61,16 +72,19 @@ def handle_weekly(hostname, feedtype, since):
     """Emit JSON for rtstats for this host"""
     pgconn = util.get_dbconn()
     cursor = pgconn.cursor()
-    flimit = ''
-    if feedtype != '':
-        flimit = " and p.feedtype_id = get_ldm_feedtype_id('%s') " % (feedtype,
-                                                                      )
-    tlimit = ''
+    flimit = ""
+    if feedtype != "":
+        flimit = " and p.feedtype_id = get_ldm_feedtype_id('%s') " % (
+            feedtype,
+        )
+    tlimit = ""
     if since is not None:
-        tlimit = (" and h.valid >= '%s' "
-                  ) % (pd.to_datetime(since).strftime("%Y-%m-%d"),)
+        tlimit = (" and h.valid >= '%s' ") % (
+            pd.to_datetime(since).strftime("%Y-%m-%d"),
+        )
     sts = datetime.datetime.utcnow()
-    cursor.execute("""
+    cursor.execute(
+        """
     WITH weekly as (
         SELECT
         extract(isoyear from valid) as yr, extract(week from valid) as week,
@@ -81,8 +95,12 @@ def handle_weekly(hostname, feedtype, since):
         max(feedtype_id) as feedtype_id from
         ldm_rtstats_daily h JOIN ldm_feedtype_paths p on
             (h.feedtype_path_id = p.id) WHERE
-        p.node_host_id = get_ldm_host_id(%s) """ + flimit + """
-        """ + tlimit + """ GROUP by yr, week, feedtype_path_id)
+        p.node_host_id = get_ldm_host_id(%s) """
+        + flimit
+        + """
+        """
+        + tlimit
+        + """ GROUP by yr, week, feedtype_path_id)
     select
     to_char(
         (yr || '-01-01')::date + (week || ' weeks')::interval, 'YYYY-mm-dd')
@@ -99,17 +117,28 @@ def handle_weekly(hostname, feedtype, since):
     from weekly h JOIN ldm_feedtype_paths p on
     (h.feedtype_path_id = p.id)
     ORDER by v ASC
-    """, (hostname, ))
+    """,
+        (hostname,),
+    )
     utcnow = datetime.datetime.utcnow()
     res = dict()
-    res['query_time[secs]'] = (utcnow - sts).total_seconds()
-    res['hostname'] = hostname
-    res['columns'] = ['valid', 'feedtype_path_id', 'origin', 'relay',
-                      'min_latency', 'avg_latency', 'max_latency',
-                      'nprods', 'nbytes', 'feedtype']
-    res['data'] = []
+    res["query_time[secs]"] = (utcnow - sts).total_seconds()
+    res["hostname"] = hostname
+    res["columns"] = [
+        "valid",
+        "feedtype_path_id",
+        "origin",
+        "relay",
+        "min_latency",
+        "avg_latency",
+        "max_latency",
+        "nprods",
+        "nbytes",
+        "feedtype",
+    ]
+    res["data"] = []
     for row in cursor:
-        res['data'].append(row)
+        res["data"].append(row)
     return json.dumps(res)
 
 
@@ -117,16 +146,19 @@ def handle_daily(hostname, feedtype, since):
     """Emit JSON for rtstats for this host"""
     pgconn = util.get_dbconn()
     cursor = pgconn.cursor()
-    flimit = ''
-    if feedtype != '':
-        flimit = " and p.feedtype_id = get_ldm_feedtype_id('%s') " % (feedtype,
-                                                                      )
-    tlimit = ''
+    flimit = ""
+    if feedtype != "":
+        flimit = " and p.feedtype_id = get_ldm_feedtype_id('%s') " % (
+            feedtype,
+        )
+    tlimit = ""
     if since is not None:
-        tlimit = (" and h.valid >= '%s' "
-                  ) % (pd.to_datetime(since).strftime("%Y-%m-%d"),)
+        tlimit = (" and h.valid >= '%s' ") % (
+            pd.to_datetime(since).strftime("%Y-%m-%d"),
+        )
     sts = datetime.datetime.utcnow()
-    cursor.execute("""
+    cursor.execute(
+        """
     select
     to_char(valid, 'YYYY-MM-DD'),
     h.feedtype_path_id,
@@ -140,20 +172,35 @@ def handle_daily(hostname, feedtype, since):
     (select feedtype from ldm_feedtypes where id = p.feedtype_id) as feedtype
     from ldm_rtstats_daily h JOIN ldm_feedtype_paths p on
     (h.feedtype_path_id = p.id) WHERE
-    p.node_host_id = get_ldm_host_id(%s) """ + flimit + """
-    """ + tlimit + """
+    p.node_host_id = get_ldm_host_id(%s) """
+        + flimit
+        + """
+    """
+        + tlimit
+        + """
     ORDER by h.valid ASC
-    """, (hostname, ))
+    """,
+        (hostname,),
+    )
     utcnow = datetime.datetime.utcnow()
     res = dict()
-    res['query_time[secs]'] = (utcnow - sts).total_seconds()
-    res['hostname'] = hostname
-    res['columns'] = ['valid', 'feedtype_path_id', 'origin', 'relay',
-                      'min_latency', 'avg_latency', 'max_latency',
-                      'nprods', 'nbytes', 'feedtype']
-    res['data'] = []
+    res["query_time[secs]"] = (utcnow - sts).total_seconds()
+    res["hostname"] = hostname
+    res["columns"] = [
+        "valid",
+        "feedtype_path_id",
+        "origin",
+        "relay",
+        "min_latency",
+        "avg_latency",
+        "max_latency",
+        "nprods",
+        "nbytes",
+        "feedtype",
+    ]
+    res["data"] = []
     for row in cursor:
-        res['data'].append(row)
+        res["data"].append(row)
     return json.dumps(res)
 
 
@@ -161,16 +208,19 @@ def handle_hourly(hostname, feedtype, since):
     """Emit JSON for rtstats for this host"""
     pgconn = util.get_dbconn()
     cursor = pgconn.cursor()
-    flimit = ''
-    if feedtype != '':
-        flimit = " and p.feedtype_id = get_ldm_feedtype_id('%s') " % (feedtype,
-                                                                      )
-    tlimit = ''
+    flimit = ""
+    if feedtype != "":
+        flimit = " and p.feedtype_id = get_ldm_feedtype_id('%s') " % (
+            feedtype,
+        )
+    tlimit = ""
     if since is not None:
-        tlimit = (" and h.valid >= '%s' "
-                  ) % (pd.to_datetime(since).strftime("%Y-%m-%d %H:%M+00"),)
+        tlimit = (" and h.valid >= '%s' ") % (
+            pd.to_datetime(since).strftime("%Y-%m-%d %H:%M+00"),
+        )
     sts = datetime.datetime.utcnow()
-    cursor.execute("""
+    cursor.execute(
+        """
     select
     to_char(valid at time zone 'UTC', 'YYYY-MM-DDThh24:MI:SSZ'),
     h.feedtype_path_id,
@@ -184,33 +234,49 @@ def handle_hourly(hostname, feedtype, since):
     (select feedtype from ldm_feedtypes where id = p.feedtype_id) as feedtype
     from ldm_rtstats_hourly h JOIN ldm_feedtype_paths p on
     (h.feedtype_path_id = p.id) WHERE
-    p.node_host_id = get_ldm_host_id(%s) """ + flimit + """
-    """ + tlimit + """
+    p.node_host_id = get_ldm_host_id(%s) """
+        + flimit
+        + """
+    """
+        + tlimit
+        + """
     ORDER by h.valid ASC
-    """, (hostname, ))
+    """,
+        (hostname,),
+    )
     utcnow = datetime.datetime.utcnow()
     res = dict()
-    res['query_time[secs]'] = (utcnow - sts).total_seconds()
-    res['hostname'] = hostname
-    res['columns'] = ['valid', 'feedtype_path_id', 'origin', 'relay',
-                      'min_latency', 'avg_latency', 'max_latency',
-                      'nprods', 'nbytes', 'feedtype']
-    res['data'] = []
+    res["query_time[secs]"] = (utcnow - sts).total_seconds()
+    res["hostname"] = hostname
+    res["columns"] = [
+        "valid",
+        "feedtype_path_id",
+        "origin",
+        "relay",
+        "min_latency",
+        "avg_latency",
+        "max_latency",
+        "nprods",
+        "nbytes",
+        "feedtype",
+    ]
+    res["data"] = []
     for row in cursor:
-        res['data'].append(row)
+        res["data"].append(row)
     return json.dumps(res)
 
 
 def handle_topology(hostname, feedtype):
     """Generate topology for this feedtype"""
-    if feedtype == '':
+    if feedtype == "":
         return json.dumps("NO_FEEDTYPE_SET_ERROR")
     pgconn = util.get_dbconn()
     cursor = pgconn.cursor()
     # compute all upstreams for this feedtype
     upstreams = {}
     sts = datetime.datetime.utcnow()
-    cursor.execute("""
+    cursor.execute(
+        """
     WITH active as (
         select distinct id from
         ldm_feedtype_paths p JOIN ldm_rtstats_hourly r
@@ -221,7 +287,9 @@ def handle_topology(hostname, feedtype):
     (select hostname from ldm_hostnames where id = p.relay_host_id) as relay,
     (select hostname from ldm_hostnames where id = p.node_host_id) as node
     from ldm_feedtype_paths p JOIN active a on (p.id = a.id)
-    """, (feedtype,))
+    """,
+        (feedtype,),
+    )
     utcnow = datetime.datetime.utcnow()
     for row in cursor:
         upstreams.setdefault(row[1], []).append(row[0])
@@ -236,7 +304,7 @@ def handle_topology(hostname, feedtype):
         for path in paths:
             if len(path) == depth:
                 for up in upstreams.get(path[-1], []):
-                    newpaths.append(path + [up, ])
+                    newpaths.append(path + [up])
         if len(newpaths) == 0:
             break
         paths = paths + newpaths
@@ -245,9 +313,9 @@ def handle_topology(hostname, feedtype):
         #    print(",".join(path))
         depth += 1
     res = dict()
-    res['query_time[secs]'] = (utcnow - sts).total_seconds()
-    res['hostname'] = hostname
-    res['paths'] = paths
+    res["query_time[secs]"] = (utcnow - sts).total_seconds()
+    res["hostname"] = hostname
+    res["paths"] = paths
     return json.dumps(res)
 
 
@@ -256,56 +324,60 @@ def handle_feedtypes(hostname):
     pgconn = util.get_dbconn()
     cursor = pgconn.cursor()
     sts = datetime.datetime.utcnow()
-    cursor.execute("""
+    cursor.execute(
+        """
     select distinct f.feedtype from ldm_feedtypes f JOIN ldm_feedtype_paths p
     on (f.id = p.feedtype_id) WHERE p.node_host_id = get_ldm_host_id(%s)
     ORDER by f.feedtype
-    """, (hostname, ))
+    """,
+        (hostname,),
+    )
     ets = datetime.datetime.utcnow()
     res = dict()
-    res['query_time[secs]'] = (ets - sts).total_seconds()
-    res['generation_time'] = ets.strftime("%Y-%m-%dT%H:%M:%SZ")
-    res['hostname'] = hostname
+    res["query_time[secs]"] = (ets - sts).total_seconds()
+    res["generation_time"] = ets.strftime("%Y-%m-%dT%H:%M:%SZ")
+    res["hostname"] = hostname
     feedtypes = []
     for row in cursor:
         feedtypes.append(row[0])
-    res['feedtypes'] = feedtypes
+    res["feedtypes"] = feedtypes
     return json.dumps(res)
 
 
-def main():
-    """Go Main Go"""
-    sys.stdout.write("Content-type: application/json\n\n")
-    form = cgi.FieldStorage()
-    cb = form.getfirst('callback', None)
-    hostname = form.getfirst('hostname', '')
-    service = form.getfirst('service', '')
-    feedtype = form.getfirst('feedtype', '')
-    since = form.getfirst('since')
-    mckey = "/services/host/%s/%s.json?feedtype=%s" % (hostname, service,
-                                                       feedtype)
-    mc = memcache.Client(['localhost:11211'], debug=0)
+def application(environ, start_response):
+    """Answer request."""
+    fields = parse_formvars(environ)
+    cb = fields.get("callback", None)
+    hostname = fields.get("hostname", "")
+    service = fields.get("service", "")
+    feedtype = fields.get("feedtype", "")
+    since = fields.get("since")
+    mckey = "/services/host/%s/%s.json?feedtype=%s" % (
+        hostname,
+        service,
+        feedtype,
+    )
+    mc = memcache.Client(["localhost:11211"], debug=0)
     res = mc.get(mckey)
     if not res:
-        if service == 'feedtypes':
+        if service == "feedtypes":
             res = handle_feedtypes(hostname)
-        elif service == 'rtstats':
+        elif service == "rtstats":
             res = handle_rtstats(hostname, feedtype)
-        elif service == 'hourly':
+        elif service == "hourly":
             res = handle_hourly(hostname, feedtype, since)
-        elif service == 'daily':
+        elif service == "daily":
             res = handle_daily(hostname, feedtype, since)
-        elif service == 'weekly':
+        elif service == "weekly":
             res = handle_weekly(hostname, feedtype, since)
-        elif service == 'topology':
+        elif service == "topology":
             res = handle_topology(hostname, feedtype)
         mc.set(mckey, res, 3600)
     if cb is None:
-        sys.stdout.write(res)
+        data = res
     else:
-        sys.stdout.write("%s(%s)" % (cb, res))
+        data = "%s(%s)" % (cb, res)
 
-
-if __name__ == '__main__':
-    main()
-    # handle_topology('metfs1.agron.iastate.edu', 'IDS|DDPLUS')
+    headers = [("Content-type", "application/json")]
+    start_response("200 OK", headers)
+    return [data.encode("ascii")]

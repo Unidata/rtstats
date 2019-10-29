@@ -1,7 +1,8 @@
 
-  # allow CGI scripts to have pylib in their search path
-  SetEnv PYTHONPATH "/opt/rtstats/pylib"
- 
+  # Requires mod-wsgi support!
+  # the apache wsgi.conf file should set:
+  # WSGIApplicationGroup %{GLOBAL}
+
   DocumentRoot "/opt/rtstats/htdocs"
   <Directory "/opt/rtstats/htdocs">
   	Order allow,deny
@@ -9,7 +10,7 @@
   </Directory>
 
   <Directory "/opt/rtstats/htdocs/services">
-    AddHandler cgi-script .py
+    AddHandler wsgi-script .py
     Options +ExecCGI
     RewriteEngine On
     RewriteRule ^idd.geojson(.*) idd.py?service=geojson&$1 [QSA]
@@ -21,7 +22,7 @@
   </Directory>
 
   <Directory "/opt/rtstats/htdocs/rtstats">
-    AddHandler cgi-script .py
+    AddHandler wsgi-script .py
     RewriteEngine On
     RewriteRule ^stats.html stats.php
   </Directory>
@@ -29,7 +30,7 @@
   
   ScriptAlias /cgi-bin/ "/opt/rtstats/cgi-bin/"
   <Directory "/opt/rtstats/cgi-bin">
-    AddHandler cgi-script .py
+    AddHandler wsgi-script .py
     Options +FollowSymLinks +ExecCGI
     AllowOverride None
     Order allow,deny

@@ -26,7 +26,7 @@ before_install:
   - echo '</VirtualHost>' | sudo tee -a /etc/apache2/sites-enabled/rtstats.conf > /dev/null
   - sudo service apache2 restart || sudo cat /var/log/apache2/error.log
   # apt provided requests, pandas is too old
-  - "sudo pip install requests"
+  - "sudo pip install requests paste"
   - "sudo pip install pandas anytree pygeoip"
   - curl http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz | sudo gunzip - > /tmp/GeoLiteCity.dat
 install:

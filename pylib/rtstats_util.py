@@ -2,27 +2,40 @@
 
 import json
 import os
-os.environ['MPLCONFIGDIR'] = "/tmp"  # hack
 
+os.environ["MPLCONFIGDIR"] = "/tmp"  # hack
 import psycopg2
-import matplotlib.dates as mdates
+
+import matplotlib
 from matplotlib.ticker import FuncFormatter
+import matplotlib.dates as mdates
+
+matplotlib.use("agg")
+import matplotlib.pyplot as plt
+from pandas.plotting import register_matplotlib_converters
+
+register_matplotlib_converters()
 
 
 def get_config():
     """Return a dict() of our runtime configuration"""
-    fn = "%s/settings.json" % (os.path.join(os.path.dirname(__file__),
-                                            "../config"),)
+    fn = "%s/settings.json" % (
+        os.path.join(os.path.dirname(__file__), "../config"),
+    )
     return json.load(open(fn))
 
 
 def get_dbconn(rw=False):
     """return a database connection"""
     config = get_config()
-    dbopts = config['databaserw' if rw is True else 'databasero']
+    dbopts = config["databaserw" if rw is True else "databasero"]
 
-    return psycopg2.connect(dbname=dbopts['name'], host=dbopts['host'],
-                            user=dbopts['user'], password=dbopts['password'])
+    return psycopg2.connect(
+        dbname=dbopts["name"],
+        host=dbopts["host"],
+        user=dbopts["user"],
+        password=dbopts["password"],
+    )
 
 
 def fancy_labels(ax):
@@ -39,7 +52,7 @@ def fancy_labels(ax):
     elif days < 63:
         ax.xaxis.set_major_locator(mdates.DayLocator([1, 15]))
     else:
-        ax.xaxis.set_major_locator(mdates.DayLocator([1, ]))
+        ax.xaxis.set_major_locator(mdates.DayLocator([1]))
 
     def my_formatter(x, pos=None):
         x = mdates.num2date(x)
