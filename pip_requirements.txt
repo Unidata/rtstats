@@ -1,2 +1,2 @@
 anytree
-pygeoip
+geoip2

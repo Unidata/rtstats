@@ -18,8 +18,8 @@ before_install:
   - git clone --depth 1 https://github.com/akrherz/ci_tooling.git .ci_tooling
   - . .ci_tooling/postgres.sh
   - sudo ln -s `pwd` /opt/rtstats
-  # curl http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz | sudo gunzip - > /tmp/GeoLiteCity.dat
-
+  - curl https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz | tar -xzf -
+  - mv GeoLite2-City_* GeoLite2-City
 install:
   - . .ci_tooling/miniconda.sh
   - "pip install --upgrade pip"
