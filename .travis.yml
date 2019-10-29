@@ -22,6 +22,7 @@ before_install:
   - mv GeoLite2-City_* GeoLite2-City
 install:
   - . .ci_tooling/miniconda.sh
+  - . .ci_tooling/mod_wsgi.sh
   - "pip install --upgrade pip"
 
 before_script:
