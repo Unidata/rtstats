@@ -2,6 +2,7 @@
   # Requires mod-wsgi support!
   # the apache wsgi.conf file should set:
   # WSGIApplicationGroup %{GLOBAL}
+  WSGIProcessGroup rtstats_wsgi
 
   DocumentRoot "/opt/rtstats/htdocs"
   <Directory "/opt/rtstats/htdocs">

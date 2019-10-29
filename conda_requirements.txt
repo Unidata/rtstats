@@ -1,7 +1,6 @@
 matplotlib-base
 pandas
 psycopg2
-pygeoip
 python-memcached
 pytz
 twisted
