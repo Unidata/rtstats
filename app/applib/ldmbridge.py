@@ -1,9 +1,9 @@
-# twisted imports
+"""Async bridge."""
 from twisted.internet import stdio
 from twisted.python import log
 from twisted.internet import reactor
-from applib import rtstats
 from twisted.protocols import basic
+from applib import rtstats
 
 
 class RTStatsIngestor(basic.LineReceiver):

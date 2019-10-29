@@ -36,7 +36,7 @@ def s2ts(timestamp):
       datetime: with tzinfo set to UTC
     """
     ts = datetime.datetime.strptime(timestamp, "%Y%m%d%H%M%S")
-    return ts.replace(tzinfo=pytz.utc)
+    return ts.replace(tzinfo=pytz.UTC)
 
 
 def parser(cursor, line):
@@ -46,7 +46,7 @@ def parser(cursor, line):
       cursor: database cursor
       raw (string): content of the rtstats report
     """
-    tokens = line.strip().split()
+    tokens = line.decode("ascii", "ignore").strip().split()
     if len(tokens) != 11:
         log.msg("parser did not find 11 tokens in %s" % (repr(line),))
         return
