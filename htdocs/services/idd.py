@@ -5,13 +5,12 @@
 
 This service is cached for 3 minutes via memcached
 """
-import cgi
-import sys
 import json
 import datetime
 
 import memcache
 import pytz
+from paste.request import parse_formvars
 import rtstats_util as util
 
 
@@ -20,7 +19,8 @@ def run(feedtype):
     pgconn = util.get_dbconn()
     cursor = pgconn.cursor()
     sts = datetime.datetime.utcnow()
-    cursor.execute("""
+    cursor.execute(
+        """
     with data as (
         select relay_host_id, node_host_id,
         avg_latency,
@@ -48,28 +48,34 @@ def run(feedtype):
     SELECT ST_asGEoJSON(geom, 2), relay, node, avg_latency,
     to_char(valid at time zone 'UTC', 'YYYY-MM-DDThh24:MI:SSZ') from geos
     WHERE geom is not null and ST_Length(geom) > 0.1
-    """, (feedtype, ))
+    """,
+        (feedtype,),
+    )
     utcnow = datetime.datetime.utcnow()
-    res = {'type': 'FeatureCollection',
-           'crs': {'type': 'EPSG',
-                   'properties': {'code': 4326, 'coordinate_order': [1, 0]}},
-           'features': [],
-           'generation_time': utcnow.strftime("%Y-%m-%dT%H:%M:%SZ"),
-           'query_time[secs]': (utcnow - sts).total_seconds(),
-           'count': cursor.rowcount}
+    res = {
+        "type": "FeatureCollection",
+        "crs": {
+            "type": "EPSG",
+            "properties": {"code": 4326, "coordinate_order": [1, 0]},
+        },
+        "features": [],
+        "generation_time": utcnow.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "query_time[secs]": (utcnow - sts).total_seconds(),
+        "count": cursor.rowcount,
+    }
     for i, row in enumerate(cursor):
         if row[0] is None:
             continue
-        res['features'].append(dict(type="Feature",
-                                    id=i,
-                                    properties=dict(
-                                        latency=row[3],
-                                        relay=row[1],
-                                        node=row[2],
-                                        utc_valid=row[4]
-                                        ),
-                                    geometry=json.loads(row[0])
-                                    ))
+        res["features"].append(
+            dict(
+                type="Feature",
+                id=i,
+                properties=dict(
+                    latency=row[3], relay=row[1], node=row[2], utc_valid=row[4]
+                ),
+                geometry=json.loads(row[0]),
+            )
+        )
 
     return json.dumps(res)
 
@@ -82,39 +88,50 @@ def stats():
     if sts.minute < 20:  # Assume we have last hours stats by :20 after
         sts -= datetime.timedelta(hours=1)
     sts = sts.replace(minute=0, second=0, microsecond=0, tzinfo=pytz.utc)
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT sum(nbytes)::bigint from ldm_rtstats_hourly
         WHERE valid = %s
-    """, (sts,))
+    """,
+        (sts,),
+    )
     nbytes = cursor.fetchone()[0]
-    cursor.execute("""
+    cursor.execute(
+        """
         select count(distinct node_host_id)::bigint from
         ldm_rtstats_hourly h JOIN ldm_feedtype_paths p on
         (h.feedtype_path_id = p.id) WHERE h.valid = %s
-    """, (sts,))
+    """,
+        (sts,),
+    )
     hosts = cursor.fetchone()[0]
     res = dict()
-    res['generation_time'] = datetime.datetime.utcnow(
-        ).strftime("%Y-%m-%dT%H:%M:%SZ")
-    res['data'] = [dict(valid=sts.strftime("%Y-%m-%dT%H:%M:00Z"),
-                        nbytes=nbytes,
-                        hosts=hosts)]
+    res["generation_time"] = datetime.datetime.utcnow().strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
+    res["data"] = [
+        dict(
+            valid=sts.strftime("%Y-%m-%dT%H:%M:00Z"),
+            nbytes=nbytes,
+            hosts=hosts,
+        )
+    ]
 
     return json.dumps(res)
 
 
-def main():
-    """Go Main Go"""
-    sys.stdout.write("Content-type: application/vnd.geo+json\n\n")
-    form = cgi.FieldStorage()
-    feedtype = form.getfirst('feedtype', 'IDS|DDPLUS').upper()[:32]
-    cb = form.getfirst('callback', None)
-    service = form.getfirst('service', 'geojson')
+def application(environ, start_response):
+    """Answer request."""
+    fields = parse_formvars(environ)
+
+    feedtype = fields.get("feedtype", "IDS|DDPLUS").upper()[:32]
+    cb = fields.get("callback")
+    service = fields.get("service", "geojson")
     mckey = "/services/idd.py?service=%s&feedtype=%saa" % (service, feedtype)
-    mc = memcache.Client(['localhost:11211'], debug=0)
+    mc = memcache.Client(["localhost:11211"], debug=0)
     res = mc.get(mckey)
     if not res:
-        if service == 'geojson':
+        if service == "geojson":
             res = run(feedtype)
             expire = 180
         else:
@@ -122,10 +139,10 @@ def main():
             expire = 3600
         mc.set(mckey, res, expire)
     if cb is None:
-        sys.stdout.write(res)
+        data = res
     else:
-        sys.stdout.write("%s(%s)" % (cb, res))
+        data = "%s(%s)" % (cb, res)
 
-
-if __name__ == '__main__':
-    main()
+    headers = [("Content-type", "application/vnd.geo+json")]
+    start_response("200 OK", headers)
+    return [data.encode("ascii")]

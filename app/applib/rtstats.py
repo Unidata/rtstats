@@ -4,8 +4,8 @@ import datetime
 from distutils.version import LooseVersion
 
 # Versions that had the origin 32 byte truncation bug, see @akrherz/rtstats#1
-TRUNC_BUG_FLOOR = LooseVersion('6.11.7')
-TRUNC_BUG_CEIL = LooseVersion('6.12.15.38')
+TRUNC_BUG_FLOOR = LooseVersion("6.11.7")
+TRUNC_BUG_CEIL = LooseVersion("6.12.15.38")
 
 
 def split_origin(val):
@@ -35,8 +35,8 @@ def s2ts(timestamp):
     Returns:
       datetime: with tzinfo set to UTC
     """
-    ts = datetime.datetime.strptime(timestamp, '%Y%m%d%H%M%S')
-    return ts.replace(tzinfo=pytz.utc)
+    ts = datetime.datetime.strptime(timestamp, "%Y%m%d%H%M%S")
+    return ts.replace(tzinfo=pytz.UTC)
 
 
 def parser(cursor, line):
@@ -46,7 +46,7 @@ def parser(cursor, line):
       cursor: database cursor
       raw (string): content of the rtstats report
     """
-    tokens = line.strip().split()
+    tokens = line.decode("ascii", "ignore").strip().split()
     if len(tokens) != 11:
         log.msg("parser did not find 11 tokens in %s" % (repr(line),))
         return
@@ -70,13 +70,27 @@ def parser(cursor, line):
     slowest_at = tokens[9]
     feedtype = tokens[3]
     node_hostname = tokens[2]
-    cursor.execute("""INSERT into ldm_rtstats
+    cursor.execute(
+        """INSERT into ldm_rtstats
     (feedtype_path_id, queue_arrival, queue_recent, nprods, nbytes,
     avg_latency, max_latency, slowest_at, version_id) VALUES
     (get_or_set_ldm_feedtype_path_id(get_or_set_ldm_feedtype_id(%s),
         get_or_set_ldm_host_id(%s), get_or_set_ldm_host_id(%s),
         get_or_set_ldm_host_id(%s)), %s, %s, %s, %s,
     %s, %s, %s, get_or_set_ldm_version_id(%s))
-    """, (feedtype, origin_hostname, relay_hostname, node_hostname,
-          queue_arrival,  queue_recent, nprods, nbytes, avg_latency,
-          max_latency, slowest_at, version))
+    """,
+        (
+            feedtype,
+            origin_hostname,
+            relay_hostname,
+            node_hostname,
+            queue_arrival,
+            queue_recent,
+            nprods,
+            nbytes,
+            avg_latency,
+            max_latency,
+            slowest_at,
+            version,
+        ),
+    )

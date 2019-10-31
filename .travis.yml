@@ -1,41 +1,38 @@
 sudo: required
-dist: trusty
+dist: bionic
 addons:
-  postgresql: "9.5"
-  apt:
-    packages:
-      - postgresql-9.5-postgis-2.3
   hosts:
     - rstats.local
     - memcached.local
-virtualenv:
-  system_site_packages: true
+    - rtstatstest
 language: python
-python:
-  - "2.7"
+python: 3.6
+env:
+  global:
+    - MPLLOCALFREETYPE=1
+  matrix:
+    - PYTHON_VERSION=3.6
+    - PYTHON_VERSION=3.7
+
 before_install:
+  - git clone --depth 1 https://github.com/akrherz/ci_tooling.git .ci_tooling
+  - . .ci_tooling/postgres.sh
   - sudo ln -s `pwd` /opt/rtstats
-  - sudo add-apt-repository ppa:ubuntugis/ppa -y
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq python-matplotlib python-psycopg2 python-numpy python-memcache 
-  - sudo apt-get install apache2 libapache2-mod-wsgi memcached
-  - sudo service memcached start
-  - sudo a2enmod headers rewrite proxy cgi
-  - echo '<VirtualHost *:80>' | sudo tee /etc/apache2/sites-enabled/rtstats.conf > /dev/null
-  - cat config/rtstats-vhost.inc | sudo tee -a /etc/apache2/sites-enabled/rtstats.conf > /dev/null
-  - echo '</VirtualHost>' | sudo tee -a /etc/apache2/sites-enabled/rtstats.conf > /dev/null
-  - sudo service apache2 restart || sudo cat /var/log/apache2/error.log
-  # apt provided requests, pandas is too old
-  - "sudo pip install requests"
-  - "sudo pip install pandas anytree pygeoip"
-  - curl http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz | sudo gunzip - > /tmp/GeoLiteCity.dat
+  - curl https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz | tar -xzf -
+  - mv GeoLite2-City_* GeoLite2-City
 install:
+  - . .ci_tooling/miniconda.sh
+  - . .ci_tooling/mod_wsgi.sh
   - "pip install --upgrade pip"
+
 before_script:
   - cd config; cp settings.json-in settings.json; cd ..
+  - export PATH="/usr/lib/postgresql/11/bin:$PATH"
+  - psql -c 'CREATE ROLE travis SUPERUSER LOGIN CREATEDB;' -U postgres || true
   - cd database; sh bootstrap.sh
   - python schema_manager.py
   - cd ..
+
 script:
   - cat test/rtstats_example.txt | python app/run.py
   - python scripts/assign_hostname_geom.py
