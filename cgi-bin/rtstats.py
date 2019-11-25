@@ -88,7 +88,7 @@ set listed below, see the <a href="fixme">LDM Feedtypes</a> documentation.</p>
     """ % (
         listing,
     )
-    return [view.render("main.html").encode("ascii")]
+    return [view.render("main.html").encode("ascii", "ignore")]
 
 
 def handle_site(start_response, hostname):
@@ -136,7 +136,7 @@ def handle_site(start_response, hostname):
     content += timing(j, URI)
     view = myview.MyView()
     view.vars["content"] = content
-    return [view.render("main.html").encode("ascii")]
+    return [view.render("main.html").encode("ascii", "ignore")]
 
 
 def handle_sitesummary(start_response, hostname):
@@ -176,7 +176,7 @@ def handle_sitesummary(start_response, hostname):
     )
     view = myview.MyView()
     view.vars["content"] = content
-    return [view.render("main.html").encode("ascii")]
+    return [view.render("main.html").encode("ascii", "ignore")]
 
 
 def handle_siteindex(start_response, link, feedtype=None):
@@ -223,7 +223,7 @@ def handle_siteindex(start_response, link, feedtype=None):
 
     view = myview.MyView()
     view.vars["content"] = content
-    return [view.render("main.html").encode("ascii")]
+    return [view.render("main.html").encode("ascii", "ignore")]
 
 
 def handle_volume_stats_plot(start_response, hostname, period):
@@ -345,7 +345,7 @@ Feed                           Average             Maximum     Products
     )
     view = myview.MyView()
     view.vars["content"] = content
-    return [view.render("main.html").encode("ascii")]
+    return [view.render("main.html").encode("ascii", "ignore")]
 
 
 def handle_topology(start_response, hostname, feedtype):
@@ -362,7 +362,7 @@ def handle_topology(start_response, hostname, feedtype):
     if not isinstance(j, dict):
         view = myview.MyView()
         view.vars["content"] = "No topology found for host"
-        return [view.render("main.html").encode("ascii")]
+        return [view.render("main.html").encode("ascii", "ignore")]
     upstreams = j["upstreams"]
     nodedict = dict()
     nodedict[hostname] = Node(hostname)
@@ -400,7 +400,7 @@ def handle_topology(start_response, hostname, feedtype):
 
     view = myview.MyView()
     view.vars["content"] = content
-    return [view.render("main.html").encode("ascii")]
+    return [view.render("main.html").encode("ascii", "ignore")]
 
 
 def handle_rtopology(start_response, feedtype):
@@ -417,7 +417,7 @@ def handle_rtopology(start_response, feedtype):
     if not isinstance(j, dict):
         view = myview.MyView()
         view.vars["content"] = "No topology found for host"
-        return [view.render("main.html").encode("ascii")]
+        return [view.render("main.html").encode("ascii", "ignore")]
     downstreams = j["downstreams"]
     content = u"<pre>\n"
     for hostname, ar in downstreams.items():
@@ -457,7 +457,7 @@ def handle_rtopology(start_response, feedtype):
 
     view = myview.MyView()
     view.vars["content"] = content
-    return [view.render("main.html").encode("ascii")]
+    return [view.render("main.html").encode("ascii", "ignore")]
 
 
 def plot_latency(start_response, feedtype, host, logopt):
