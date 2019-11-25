@@ -145,4 +145,4 @@ def application(environ, start_response):
 
     headers = [("Content-type", "application/vnd.geo+json")]
     start_response("200 OK", headers)
-    return [data.encode("ascii")]
+    return [data.encode("ascii", "ignore")]
