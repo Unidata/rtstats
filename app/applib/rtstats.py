@@ -1,7 +1,9 @@
-from twisted.python import log
-import pytz
+"""Main rtstats processing work lies here."""
 import datetime
 from distutils.version import LooseVersion
+
+from twisted.python import log
+import pytz
 
 # Versions that had the origin 32 byte truncation bug, see @akrherz/rtstats#1
 TRUNC_BUG_FLOOR = LooseVersion("6.11.7")
@@ -17,12 +19,17 @@ def split_origin(val):
       list: (origin_hostname, relay_hostname)
     """
     tokens = val.split("_v_")
-    if len(tokens) != 2:
-        log.msg("split_origin provided invalid string: %s" % (repr(val),))
+    # Simpliest case
+    if len(tokens) == 2:
+        a, b = tokens
+        if b == "":
+            b = a
+    elif len(tokens) == 1:
+        # site is likely a source to itself
+        a = b = tokens[0]
+    else:
+        log.msg("split_orgigin failed for |%s|", val)
         return [None, None]
-    a, b = tokens
-    if b == "":
-        b = a
     return [a, b]
 
 
