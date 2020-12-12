@@ -1,11 +1,12 @@
 # rtstats
-Unidata rtstats revamp, see discussion at @Unidata/unidata-usercomm#2 
 
-[![Build Status](https://travis-ci.org/akrherz/rtstats.svg)](https://travis-ci.org/akrherz/rtstats)
+Unidata rtstats revamp, see discussion at @Unidata/unidata-usercomm#2
 
-A public demonstration of this code is [here](https://rtstats.agron.iastate.edu)
+[![Build Status](https://github.com/Unidata/rtstats/workflows/Install%20and%20Test/badge.svg)](https://github.com/Unidata/rtstats/actions)
 
-### Installation
+A public demonstration of this code is [here](https://rtstatstest.unidata.ucar.edu)
+
+## Installation
 
 This software makes the following assumptions.
 
@@ -28,7 +29,7 @@ For the purposes of this installation document, we'll assume that all three run
 on the same server.  A [bootstrap_server.sh](scripts/bootstrap_server.sh) shell
 script file exists with the setup process.
 
-### `config/settings.json` options
+## `config/settings.json` options
 
 Various codes within this repository get their runtime configuration from
 the `config/settings.json` file.  The following table details these configuration
