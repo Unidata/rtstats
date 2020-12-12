@@ -1,0 +1,36 @@
+name: Install and Test
+on: [push]
+jobs:
+  build-linux:
+    name: Python (${{ matrix.PYTHON_VERSION }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        PYTHON_VERSION: ["3.6", "3.8", "3.9"]
+    env:
+      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Add /etc/hosts entries
+      run: |
+        echo 127.0.0.1 rtstats.local | sudo tee -a /etc/hosts
+        echo 127.0.0.1 memcached.local | sudo tee -a /etc/hosts
+        echo 127.0.0.1 rtstatstest | sudo tee -a /etc/hosts
+
+    - name: Setup CI from ci-tooling
+      run: |
+        git clone --depth 1 https://github.com/akrherz/ci_tooling.git .ci_tooling
+        . .ci_tooling/postgres.sh
+        sudo ln -s `pwd` /opt/rtstats
+        . .ci_tooling/miniconda.sh
+        . .ci_tooling/mod_wsgi.sh
+        pip install --upgrade pip
+        cp config/settings.json-in config/settings.json
+        export PATH="/usr/lib/postgresql/11/bin:$PATH"
+        psql -c 'CREATE ROLE runner SUPERUSER LOGIN CREATEDB;' -U postgres || true
+        cd database; sh bootstrap.sh
+        python schema_manager.py
+        cd ..
+        cat test/rtstats_example.txt | python app/run.py
+        sudo cat /var/log/apache2/error.log
