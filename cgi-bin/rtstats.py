@@ -381,7 +381,7 @@ def handle_topology(start_response, hostname, feedtype):
             nodedict.pop(host)
         nodedict[host] = get_node(host, nodedict[hostname])
 
-    content = u"""
+    content = """
     <h3>LDM Feedtype: %s Topology for Host: %s</h3>
     <p>Click on the hostname for topology for that host
     or the <i>view stats</i>
@@ -419,7 +419,7 @@ def handle_rtopology(start_response, feedtype):
         view.vars["content"] = "No topology found for host"
         return [view.render("main.html").encode("ascii", "ignore")]
     downstreams = j["downstreams"]
-    content = u"<pre>\n"
+    content = "<pre>\n"
     for hostname, ar in downstreams.items():
         if len(ar) == 0 or (len(ar) == 1 and ar[0] == hostname):
             content += ('<a href="iddstats_topo_nc?%s+%s">%s</a>\n') % (
@@ -453,7 +453,7 @@ def handle_rtopology(start_response, feedtype):
                 node.name,
                 node.name,
             )
-    content += u"</pre>\n"
+    content += "</pre>\n"
 
     view = myview.MyView()
     view.vars["content"] = content
