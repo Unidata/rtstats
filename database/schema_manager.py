@@ -15,7 +15,7 @@ TABLE = "schema_manager_version"
 
 
 def check_management(cursor):
-    """ Make sure we have management of this database """
+    """Make sure we have management of this database"""
     cursor.execute(
         """
          select * from pg_tables where schemaname = 'public'
@@ -41,7 +41,7 @@ def check_management(cursor):
 
 
 def run_db(dbname):
-    """ Lets do an actual database """
+    """Lets do an actual database"""
     dbopts = CONFIG["databaserw"]
     dbconn = psycopg2.connect(
         database=dbopts["name"],
@@ -94,7 +94,7 @@ def run_db(dbname):
 
 
 def main():
-    """ Go Main Go """
+    """Go Main Go"""
     os.chdir("upgrade")
     for dbname in os.listdir("."):
         run_db(dbname)
