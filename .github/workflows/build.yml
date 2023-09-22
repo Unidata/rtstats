@@ -1,36 +1,63 @@
 name: Install and Test
-on: [push, pull_request]
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
 jobs:
   build-linux:
+    defaults:
+      run:
+        # Ensures environment gets sourced right
+        shell: bash -l {0}
     name: Python (${{ matrix.PYTHON_VERSION }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        PYTHON_VERSION: ["3.8", "3.9", "3.10"]
+        PYTHON_VERSION: ["3.9", "3.10", "3.11"]
     env:
       PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Add /etc/hosts entries
       run: |
         echo 127.0.0.1 rtstats.local | sudo tee -a /etc/hosts
         echo 127.0.0.1 memcached.local | sudo tee -a /etc/hosts
         echo 127.0.0.1 rtstatstest | sudo tee -a /etc/hosts
+ 
+    # setup conda-forge with micromamba
+    - name: Setup Python
+      uses: mamba-org/setup-micromamba@v1
+      with:
+        environment-file: environment.yml
+        condarc: |
+          channels:
+            - conda-forge
+            - defaults
+        create-args: >-
+          python=${{ env.PYTHON_VERSION }}
+        environment-name: prod
+        cache-environment: true
 
-    - name: Setup CI from ci-tooling
+    - name: Copy default settings
+      run: |
+        cp config/settings.json-in config/settings.json
+
+    - name: Setup Postgres
       run: |
         git clone --depth 1 https://github.com/akrherz/ci_tooling.git .ci_tooling
         . .ci_tooling/postgres.sh
-        sudo ln -s `pwd` /opt/rtstats
-        . .ci_tooling/miniconda.sh
-        . .ci_tooling/mod_wsgi.sh
-        pip install --upgrade pip
-        cp config/settings.json-in config/settings.json
-        export PATH="/usr/lib/postgresql/11/bin:$PATH"
-        psql -c 'CREATE ROLE runner SUPERUSER LOGIN CREATEDB;' -U postgres || true
         cd database; sh bootstrap.sh
         python schema_manager.py
-        cd ..
+
+    - name: Install requirements via pip
+      run: |
+        python -m pip install -r pip_requirements.txt
+
+    - name: Setup and run example
+      run: |
+        sudo ln -s `pwd` /opt/rtstats
         cat test/rtstats_example.txt | python app/run.py
-        sudo cat /var/log/apache2/error.log

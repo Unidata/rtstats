@@ -1,6 +1,0 @@
-matplotlib-base
-pandas
-psycopg2
-python-memcached
-pytz
-twisted
