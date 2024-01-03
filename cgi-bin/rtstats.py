@@ -15,18 +15,17 @@
     .../iddstats_vol_nc1?EXP+10.100.69.110 [volume summaries]
     .../rtstats_summary_volume1?10.100.69.110+GRAPH [volume summary]
 """
-from html import escape
-import sys
-import re
-from io import BytesIO
 import datetime
-
-import requests
-import numpy as np
-import pandas as pd
-from anytree import Node, RenderTree
+import re
+import sys
+from html import escape
+from io import BytesIO
 
 import myview
+import numpy as np
+import pandas as pd
+import requests
+from anytree import Node, RenderTree
 from rtstats_util import fancy_labels, plt
 
 RE_IP = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
@@ -75,9 +74,7 @@ def handle_topoindex(start_response, link="rtstats_feedtree"):
             feedtype,
         )
     view = myview.MyView()
-    view.vars[
-        "content"
-    ] = """
+    view.vars["content"] = """
     <h2>RTSTATS Index by Sites Reporting Feeds</h2>
 <p>
 For information regarding the type of data contained within a feed type or feed
@@ -85,9 +82,7 @@ set listed below, see the <a href="fixme">LDM Feedtypes</a> documentation.</p>
 <p>
 <h2>IDD Topology Feed List</h2>
 %s
-    """ % (
-        listing,
-    )
+    """ % (listing,)
     return [view.render("main.html").encode("ascii", "ignore")]
 
 
@@ -109,9 +104,7 @@ def handle_site(start_response, hostname):
             <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
         </tr>
     </thead>
-    """ % (
-        hostname,
-    )
+    """ % (hostname,)
     for feedtype in j["feedtypes"]:
         content += ("<tr><th>%s</th>") % (feedtype,)
         content += """
@@ -121,18 +114,14 @@ def handle_site(start_response, hostname):
 <td><a href="%(p)s/iddstats_vol_nc?%(f)s+%(h)s">volume</a></td>
 <td><a href="%(p)s/iddstats_num_nc?%(f)s+%(h)s">products</a></td>
 <td><a href="%(p)s/iddstats_topo_nc?%(f)s+%(h)s">topology</a></td>
-        """ % dict(
-            h=hostname, f=feedtype, p="/cgi-bin/rtstats"
-        )
+        """ % dict(h=hostname, f=feedtype, p="/cgi-bin/rtstats")
         content += "</tr>"
     content += "</table>"
 
     content += """<p>
 <a href="%(p)s?%(h)s">Cumulative volume summary</a>
 <a href="%(p)s?%(h)s+GRAPH">Cumulative volume summary graph</a>
-    """ % dict(
-        h=hostname, p="/cgi-bin/rtstats/rtstats_summary_volume"
-    )
+    """ % dict(h=hostname, p="/cgi-bin/rtstats/rtstats_summary_volume")
     content += timing(j, URI)
     view = myview.MyView()
     view.vars["content"] = content
@@ -162,18 +151,14 @@ def handle_sitesummary(start_response, hostname):
 <td><a href="%(p)s/iddstats_vol_nc1?%(f)s+%(h)s+-b 86400">Daily volume</a></td>
 <td><a href="%(p)s/iddstats_vol_nc1?%(f)s+%(h)s+-b 604800">Weekly volume</a>
 </td>
-        """ % dict(
-            h=hostname, f=feedtype, p="/cgi-bin/rtstats"
-        )
+        """ % dict(h=hostname, f=feedtype, p="/cgi-bin/rtstats")
         content += "</tr>"
     content += "</table>"
 
     content += """<p>
 <a href="%(p)s?%(h)s">Cumulative volume summary</a>
 <a href="%(p)s?%(h)s+GRAPH">Cumulative volume summary graph</a>
-    """ % dict(
-        h=hostname, p="/cgi-bin/rtstats/rtstats_summary_volume1"
-    )
+    """ % dict(h=hostname, p="/cgi-bin/rtstats/rtstats_summary_volume1")
     view = myview.MyView()
     view.vars["content"] = content
     return [view.render("main.html").encode("ascii", "ignore")]
@@ -203,9 +188,7 @@ def handle_siteindex(start_response, link, feedtype=None):
     <thead>
         <tr><th>Domain</th><th>Hosts</th></tr>
     </thead>
-    """ % (
-        "ANY" if feedtype is None else feedtype,
-    )
+    """ % ("ANY" if feedtype is None else feedtype,)
     keys = list(domains.keys())
     keys.sort()
     for d in keys:
