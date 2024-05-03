@@ -28,7 +28,8 @@ def load_dbtables(cursor):
     pass
 
 
-if __name__ == "__main__":
+def main():
+    """Setup and run the processor."""
     fn = "%s/settings.json" % (
         os.path.join(os.path.dirname(__file__), "../config"),
     )
@@ -48,3 +49,7 @@ if __name__ == "__main__":
     df.addCallback(ready, dbpool)
 
     reactor.run()
+
+
+if __name__ == "__main__":
+    main()
