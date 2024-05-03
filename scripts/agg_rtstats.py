@@ -1,8 +1,9 @@
 """Aggregate the hourly rtstats"""
+
 import datetime
 
-import rtstats_util as util
 import pytz
+import rtstats_util as util
 
 
 def daily(pgconn):

@@ -1,12 +1,14 @@
 """Use GeoIP and assign lat/lon to hostnames"""
+
 from __future__ import print_function
-import os
+
 import json
+import os
 import re
 import socket
 
-import psycopg2
 import geoip2.database
+import psycopg2
 
 RE_IP = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
 

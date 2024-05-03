@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 """Emit JSON of feedtype
 
-    /services/feedtype/<feedtype>/topology.json
+/services/feedtype/<feedtype>/topology.json
 
 """
-import json
+
 import datetime
+import json
 
 import memcache
-from paste.request import parse_formvars
 import rtstats_util as util
+from paste.request import parse_formvars
 
 
 def handle_topology(feedtype, reverse=False):

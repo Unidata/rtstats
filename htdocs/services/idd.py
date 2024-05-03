@@ -5,13 +5,14 @@
 
 This service is cached for 3 minutes via memcached
 """
-import json
+
 import datetime
+import json
 
 import memcache
 import pytz
-from paste.request import parse_formvars
 import rtstats_util as util
+from paste.request import parse_formvars
 
 
 def run(feedtype):

@@ -3,15 +3,12 @@
 import json
 import os
 
-os.environ["MPLCONFIGDIR"] = "/tmp"  # hack
-import psycopg2
-
 import matplotlib
-from matplotlib.ticker import FuncFormatter
 import matplotlib.dates as mdates
+import psycopg2
+from matplotlib.ticker import FuncFormatter
 
 matplotlib.use("agg")
-import matplotlib.pyplot as plt
 from pandas.plotting import register_matplotlib_converters
 
 register_matplotlib_converters()
