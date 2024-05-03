@@ -8,6 +8,7 @@ from syslog import LOG_LOCAL2
 from applib import ldmbridge
 from twisted.enterprise import adbapi
 from twisted.internet import reactor
+from twisted.internet.task import LoopingCall
 from twisted.python import syslog
 
 # This is a hack that prevents a strange exception with datetime and threading
@@ -22,6 +23,10 @@ def ready(_, dbpool):
     protocol = ldmbridge.RTStatsIngestor()
     protocol.dbpool = dbpool
     ldmbridge.LDMProductFactory(protocol)
+
+    # Start a LoopingCall every 5 minutes that checks on database queues
+    lc = LoopingCall(protocol.check_queue_length)
+    lc.start(300, now=False)
 
 
 def load_dbtables(cursor):

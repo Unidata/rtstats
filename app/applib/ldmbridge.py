@@ -11,6 +11,12 @@ class RTStatsIngestor(basic.LineReceiver):
     # default delimiter is \r\n
     delimiter = b"\n"
 
+    def check_queue_length(self):
+        """Check the database queue length"""
+        # no public API, last checked
+        sz = self.dbpool.threadpool._queue.qsize()  # noqa
+        log.msg(f"Database write queue size: {sz}")
+
     def connectionLost(self, reason):
         """Called when the STDIN connection is lost"""
         log.msg("connectionLost")
