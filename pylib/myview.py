@@ -1,4 +1,5 @@
 """Simple templating"""
+
 import os
 
 

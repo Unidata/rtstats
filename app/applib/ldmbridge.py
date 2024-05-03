@@ -1,8 +1,9 @@
 """Async bridge."""
-from twisted.internet import stdio
-from twisted.python import log
-from twisted.internet import reactor
+
+from twisted.internet import reactor, stdio
 from twisted.protocols import basic
+from twisted.python import log
+
 from applib import rtstats
 
 

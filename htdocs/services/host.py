@@ -1,19 +1,20 @@
 #!/usr/bin/env python
 """Emit JSON of host
 
-    /services/host/<hostname>/feedtypes.json
-    /services/host/<hostname>/rtstats.json
-    /services/host/<hostname>/topology.json
+/services/host/<hostname>/feedtypes.json
+/services/host/<hostname>/rtstats.json
+/services/host/<hostname>/topology.json
 
 """
+
 import collections
 import datetime
 import json
 
 import memcache
 import pandas as pd
-from paste.request import parse_formvars
 import rtstats_util as util
+from paste.request import parse_formvars
 
 
 def Tree():

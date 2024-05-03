@@ -1,16 +1,14 @@
-"""A Twisted rtstats ingest + server
+"""A Twisted rtstats ingest + server"""
 
-
-"""
+import datetime
 import json
 import os
-import datetime
 from syslog import LOG_LOCAL2
 
-from twisted.internet import reactor
-from twisted.enterprise import adbapi
-from twisted.python import syslog
 from applib import ldmbridge
+from twisted.enterprise import adbapi
+from twisted.internet import reactor
+from twisted.python import syslog
 
 # This is a hack that prevents a strange exception with datetime and threading
 datetime.datetime.strptime("2017", "%Y")

@@ -1,9 +1,10 @@
 """Main rtstats processing work lies here."""
+
 import datetime
 from distutils.version import LooseVersion
 
-from twisted.python import log
 import pytz
+from twisted.python import log
 
 # Versions that had the origin 32 byte truncation bug, see @akrherz/rtstats#1
 TRUNC_BUG_FLOOR = LooseVersion("6.11.7")

@@ -2,19 +2,20 @@
 # pylint: disable=cell-var-from-loop
 """I should answer the following URIs
 
-    .../feedindex [list of feedtypes]
-    .../siteindex
-    .../iddstats_nc?EXP+server1.smn.gov.ar
-    .../iddbinstats_nc?EXP+server1.smn.gov.ar  [latency histogram]
-    .../iddstats_vol_nc?EXP+server1.smn.gov.ar [volume]
-    .../iddstats_num_nc?HDS+server1.smn.gov.ar [products]
-    .../iddstats_topo_nc?HDS+metfs1.agron.iastate.edu [topology]
-    .../rtstats_summary_volume?metfs1.agron.iastate.edu [text stats]
-    .../topoindex?tree [feedtype listing]
-    .../rtstats_feedtree?EXP [reverse topology]
-    .../iddstats_vol_nc1?EXP+10.100.69.110 [volume summaries]
-    .../rtstats_summary_volume1?10.100.69.110+GRAPH [volume summary]
+.../feedindex [list of feedtypes]
+.../siteindex
+.../iddstats_nc?EXP+server1.smn.gov.ar
+.../iddbinstats_nc?EXP+server1.smn.gov.ar  [latency histogram]
+.../iddstats_vol_nc?EXP+server1.smn.gov.ar [volume]
+.../iddstats_num_nc?HDS+server1.smn.gov.ar [products]
+.../iddstats_topo_nc?HDS+metfs1.agron.iastate.edu [topology]
+.../rtstats_summary_volume?metfs1.agron.iastate.edu [text stats]
+.../topoindex?tree [feedtype listing]
+.../rtstats_feedtree?EXP [reverse topology]
+.../iddstats_vol_nc1?EXP+10.100.69.110 [volume summaries]
+.../rtstats_summary_volume1?10.100.69.110+GRAPH [volume summary]
 """
+
 import datetime
 import re
 import sys
